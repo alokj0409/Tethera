@@ -9,7 +9,7 @@
   const VECTOR_EPSILON = 1e-6;
   const LEVEL_SEED_MULTIPLIER = 49297;
   const POISSON_MIN_DISTANCE = 70;
-  const MAX_IMPLEMENTED_LEVEL = 5;
+  const MAX_IMPLEMENTED_LEVEL = 12;
   const PLAY_PADDING = 60;
   const PLAY_TOP = 100;
   const PLAY_HEIGHT = LOGICAL_HEIGHT - 180;
@@ -20,6 +20,12 @@
   const RECOIL_DISTANCE = 2.5;
   const RECOIL_DURATION = 0.06;
   const TETHER_PULSE_THRESHOLD = 12;
+  const TARGET_ESCAPE_BOUNDS = Object.freeze({
+    left: 0,
+    right: LOGICAL_WIDTH,
+    top: 0,
+    bottom: LOGICAL_HEIGHT,
+  });
 
   const COLORS = Object.freeze({
     background: "#111215",
@@ -212,13 +218,15 @@
     return samples;
   }
 
-  function generateLinearOrbitLevel(levelIndex) {
+  function generateLevel(levelIndex) {
     if (
       !Number.isInteger(levelIndex) ||
       levelIndex < 1 ||
       levelIndex > MAX_IMPLEMENTED_LEVEL
     ) {
-      throw new RangeError("Linear Orbits generation supports Levels 1 through 5.");
+      throw new RangeError(
+        `Level generation supports Levels 1 through ${MAX_IMPLEMENTED_LEVEL}.`,
+      );
     }
 
     const seed = Math.imul(levelIndex, LEVEL_SEED_MULTIPLIER) >>> 0;
@@ -228,7 +236,8 @@
       3,
       targetCount + 2 - Math.floor(levelIndex / 25),
     );
-    const maxTethers = Math.max(6, formulaTethers);
+    const maxTethers =
+      levelIndex <= 5 ? Math.max(6, formulaTethers) : formulaTethers;
     const playWidth = LOGICAL_WIDTH - PLAY_PADDING * 2;
     const acceptsPoint = (point) =>
       Math.hypot(
@@ -243,6 +252,49 @@
       targetCount,
       acceptsPoint,
     );
+    const targets = points.map((point, index) => ({
+      id: index + 1,
+      x: point.x + PLAY_PADDING,
+      y: point.y + PLAY_TOP,
+      radius: 14,
+      active: true,
+      motion: null,
+    }));
+
+    if (levelIndex >= 6) {
+      for (const [index, target] of targets.entries()) {
+        if (index !== 0 && random() <= 0.5) {
+          continue;
+        }
+
+        const speed = 72 + random() * 18;
+        if (random() < 0.5) {
+          const inwardAngle = Math.atan2(
+            LOGICAL_HEIGHT / 2 - target.y,
+            LOGICAL_WIDTH / 2 - target.x,
+          );
+          const angle = inwardAngle + (random() - 0.5);
+          target.motion = {
+            type: "linear",
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+          };
+        } else {
+          const radius = 12 + random() * 8;
+          const phase = random() * Math.PI * 2;
+          const direction = random() < 0.5 ? -1 : 1;
+          target.motion = {
+            type: "circular",
+            centerX: target.x - Math.cos(phase) * radius,
+            centerY: target.y - Math.sin(phase) * radius,
+            radius,
+            phase,
+            angularSpeed: direction * (speed / radius),
+          };
+        }
+      }
+    }
+
     const launchAngle = -Math.PI * (0.58 + random() * 0.34);
     const launchSpeed = 82 + random() * 18;
 
@@ -256,13 +308,7 @@
         vx: Math.cos(launchAngle) * launchSpeed,
         vy: Math.sin(launchAngle) * launchSpeed,
       },
-      targets: points.map((point, index) => ({
-        id: index + 1,
-        x: point.x + PLAY_PADDING,
-        y: point.y + PLAY_TOP,
-        radius: 14,
-        active: true,
-      })),
+      targets,
       hazards: [],
       bouncers: [],
       gravityPoles: [],
@@ -272,7 +318,7 @@
   function initializeLevel(levelIndex = runtime.currentLevelIndex) {
     const playableLevelIndex =
       ((levelIndex - 1) % MAX_IMPLEMENTED_LEVEL) + 1;
-    const level = generateLinearOrbitLevel(playableLevelIndex);
+    const level = generateLevel(playableLevelIndex);
     runtime.currentState = GAME_STATE.AWAITING_INPUT;
     runtime.currentLevelIndex = level.levelNumber;
     runtime.levelSeed = level.seed;
@@ -549,7 +595,51 @@
     }
   }
 
-  function resolveCollisions(start, end) {
+  function targetHasEscaped(target) {
+    return (
+      target.x + target.radius < TARGET_ESCAPE_BOUNDS.left ||
+      target.x - target.radius > TARGET_ESCAPE_BOUNDS.right ||
+      target.y + target.radius < TARGET_ESCAPE_BOUNDS.top ||
+      target.y - target.radius > TARGET_ESCAPE_BOUNDS.bottom
+    );
+  }
+
+  function updateMovingTargets(deltaSeconds) {
+    const starts = new Map();
+
+    for (const target of runtime.targets) {
+      if (!target.active) {
+        continue;
+      }
+
+      starts.set(target.id, { x: target.x, y: target.y });
+      if (!target.motion) {
+        continue;
+      }
+
+      if (target.motion.type === "linear") {
+        target.x += target.motion.vx * deltaSeconds;
+        target.y += target.motion.vy * deltaSeconds;
+      } else if (target.motion.type === "circular") {
+        target.motion.phase += target.motion.angularSpeed * deltaSeconds;
+        target.x =
+          target.motion.centerX +
+          Math.cos(target.motion.phase) * target.motion.radius;
+        target.y =
+          target.motion.centerY +
+          Math.sin(target.motion.phase) * target.motion.radius;
+      }
+
+      if (targetHasEscaped(target)) {
+        enterTerminalState(GAME_STATE.GAME_OVER);
+        return { starts, escaped: true };
+      }
+    }
+
+    return { starts, escaped: false };
+  }
+
+  function resolveCollisions(start, end, targetStarts) {
     if (runtime.hazards.some((hazard) => sweptOrbHitsHazard(start, end, hazard))) {
       enterTerminalState(GAME_STATE.GAME_OVER);
       return;
@@ -560,9 +650,22 @@
         continue;
       }
 
+      const targetStart = targetStarts.get(target.id) ?? target;
+      const relativeStart = {
+        x: start.x - targetStart.x,
+        y: start.y - targetStart.y,
+      };
+      const relativeEnd = {
+        x: end.x - target.x,
+        y: end.y - target.y,
+      };
       const contactRadius = runtime.orb.radius + target.radius;
       if (
-        squaredDistancePointToSegment(target, start, end) <=
+        squaredDistancePointToSegment(
+          { x: 0, y: 0 },
+          relativeStart,
+          relativeEnd,
+        ) <=
         contactRadius * contactRadius
       ) {
         target.active = false;
@@ -588,6 +691,11 @@
       return;
     }
 
+    const movingTargets = updateMovingTargets(deltaSeconds);
+    if (movingTargets.escaped) {
+      return;
+    }
+
     const start = { x: runtime.orb.pos.x, y: runtime.orb.pos.y };
 
     if (runtime.currentState === GAME_STATE.TETHERED && runtime.tether) {
@@ -603,13 +711,13 @@
       runtime.orb.pos.y = tether.anchor.y + radialY * tether.radius;
       runtime.orb.vel.x = tangentX * tether.tangentialSpeed;
       runtime.orb.vel.y = tangentY * tether.tangentialSpeed;
-      resolveCollisions(start, runtime.orb.pos);
+      resolveCollisions(start, runtime.orb.pos, movingTargets.starts);
       return;
     }
 
     runtime.orb.pos.x += runtime.orb.vel.x * deltaSeconds;
     runtime.orb.pos.y += runtime.orb.vel.y * deltaSeconds;
-    resolveCollisions(start, runtime.orb.pos);
+    resolveCollisions(start, runtime.orb.pos, movingTargets.starts);
   }
 
   function handlePointerDown(event) {
@@ -1046,8 +1154,8 @@
   window.TetheraGame = Object.freeze({
     states: GAME_STATE,
     getState: () => structuredClone(runtime),
-    generateLevel: (levelIndex) =>
-      structuredClone(generateLinearOrbitLevel(levelIndex)),
+    generateLevel: (levelIndex) => structuredClone(generateLevel(levelIndex)),
+    loadLevelForDiagnostics: (levelIndex) => initializeLevel(levelIndex),
     resetLevel: () => initializeLevel(runtime.currentLevelIndex),
     stepForDiagnostics: (seconds = FIXED_TIME_STEP) => {
       updatePhysics(seconds);

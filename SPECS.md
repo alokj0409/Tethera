@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: kinetic animation and impact feedback
+Implementation checkpoint: Centrifugal Cuts (Levels 06-12)
 
-This file describes the repository as implemented, not merely intended. The app currently provides the responsive renderer, state/input loop, dynamic motion, swept collision, win/loss flow, deterministic Levels 01-05, procedural sound, and the required kinetic feedback pass. Later tiers remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides the complete core loop, deterministic Linear Orbits, and moving-target Centrifugal Cuts through Level 12. Deflection and later tiers remain pending.
 
 ## Motion feedback
 
@@ -79,20 +79,27 @@ The HUD shows zero-padded level number, cleared/total target count, and remainin
 
 ## Level generation
 
-Levels 01-05 use these implemented parameters:
+Levels 01-12 use these implemented parameters:
 
 - Seed input: unsigned `Math.imul(levelIndex, 49297)`, fed to Mulberry32.
 - Logical placement padding: `60` units horizontally and a `100`-unit header offset.
 - Play height: logical height minus `180` units.
 - Target count: `min(2 + floor(levelIndex / 4), 7)`.
 - Hazard count: `levelIndex > 10 ? min(floor((levelIndex - 10) / 3), 6) : 0`.
-- Tether allowance: `max(6, max(3, targetCount + 2 - floor(levelIndex / 25)))` for Levels 01-05.
+- Tether allowance: `max(6, formula)` for Levels 01-05, then the PRD formula `max(3, targetCount + 2 - floor(levelIndex / 25))` for Levels 06-12.
 - Poisson-disc minimum separation: `70` logical units.
 - Target radius: `14`; generated hazards, bouncers, and gravity poles: none.
 
 The generator uses Bridson active-list Poisson-disc sampling with a grid cell size of `70 / sqrt(2)` and up to 30 annulus candidates per active point. Samples must also stay at least `110` logical units from the fixed orb spawn `(195, 690)`. The orb launches at a seeded speed in `[82, 100)` and a seeded upward angle from `-0.58pi` through `-0.92pi`.
 
-The PRD tier table promises `6+` tethers for Linear Orbits, while its sample formula yields 4 or 5 for these levels. The implemented minimum of 6 follows the tier table; this is the only current numeric deviation from the pseudocode (ADR-009). Until Tier 06 is implemented, victory after Level 05 cycles to Level 01 rather than exposing an incomplete tier.
+For Levels 06-12, the first target always moves and each additional target moves when a seeded `rng() > 0.5` test passes. Moving targets use a seeded speed in `[72, 90)` logical units/s and select one of two paths:
+
+- Linear: velocity points generally through the canvas center with a seeded angular offset in `[-0.5, 0.5)` radians, then continues without bouncing. Failure occurs once the entire active target circle crosses any `390 x 844` canvas edge.
+- Circular: a seeded `12-20` unit radius, phase, and direction; angular speed is signed `speed / radius`, so tangential speed matches the seeded range.
+
+Target collision uses relative swept motion: the orb-start minus target-start vector and orb-end minus target-end vector form a segment tested against an origin circle of radius `orbRadius + targetRadius`. This catches crossings even when neither endpoint overlaps.
+
+The PRD tier table promises `6+` tethers for Linear Orbits, while its sample formula yields 4 or 5 for these levels. The implemented minimum of 6 follows the tier table. Until Tier 13 is implemented, victory after Level 12 cycles to Level 01 rather than exposing an incomplete tier.
 
 ## State machine and input
 
@@ -115,5 +122,5 @@ The runtime uses a fixed `390 x 844` logical coordinate system. It measures the 
 ## Deviations from PRD
 
 - Linear Orbits enforces a six-tether floor instead of the PRD pseudocode's lower result, resolving the conflict in favor of the explicit tier table.
-- Progression temporarily cycles from Level 05 to Level 01 because no later tier is implemented yet.
+- Progression temporarily cycles from Level 12 to Level 01 because no later tier is implemented yet.
 - Safe-area padding is applied outside the logical game surface, so the aspect-fit calculation uses only unobstructed content space.

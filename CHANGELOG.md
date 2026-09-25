@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Centrifugal Cuts
+
+### Added
+
+- Added deterministic linear and circular moving-target paths for Levels 06-12.
+- Added relative swept collision between the moving orb and moving targets.
+- Added target-escape failure after a linear target fully crosses the canvas boundary.
+
+### Changed
+
+- Extended deterministic generation and progression through Level 12.
+- Moved the temporary milestone progression loop from Level 05 to Level 12.
+
 ## [2026-09-25] — Kinetic feedback
 
 ### Added

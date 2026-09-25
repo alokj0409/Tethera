@@ -1,9 +1,9 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: deterministic Linear Orbits generation
+Implementation checkpoint: Centrifugal Cuts (Levels 06-12)
 
-This file is the definitive rules reference for the checked-in game. The complete core loop and generated Levels 01-05 are active; later-tier mechanics remain canonical requirements until their implementation checkpoints land.
+This file is the definitive rules reference for the checked-in game. The complete core loop and generated Levels 01-12 are active; later-tier mechanics remain canonical requirements until their implementation checkpoints land.
 
 ## Objective
 
@@ -49,9 +49,9 @@ An anchor placed closer than `12` logical units to the orb is shifted to an effe
 - **Bouncer:** a non-lethal line barricade that reflects the orb at `1.1x` return speed. The exact normal/reflection and anti-repeat-contact rules are pending.
 - **Wormhole pair:** entering one gate exits through its paired gate while preserving `|v|`. Exit direction, offset, and re-entry cooldown are pending.
 - **Pulsar field:** periodically applies gravity that warps the orb trajectory. Force falloff, pulse timing, duration, and stacking are pending.
-- **Moving target:** follows either a linear or circular path. Path bounds, phase, and escape detection are pending.
+- **Moving target:** from Level 06 onward, at least one target moves. Linear targets travel at a seeded `72-90` units/s generally through the canvas center and fail the level once their whole circle escapes the `390 x 844` field. Circular targets orbit a seeded center at the same tangential-speed range with a `12-20` unit radius. Orb contact is tested in relative swept space.
 
-Pending details above are not implemented gameplay and are tracked in `TODO.md` for later ADRs. When a spike hit and final-target contact are both possible in one fixed step, the spike loss takes precedence. The outer logical boundary currently has no collision response.
+Pending bouncer, wormhole, and pulsar details above are not implemented gameplay and are tracked in `TODO.md`. When a spike hit and final-target contact are both possible in one fixed step, the spike loss takes precedence. The outer logical boundary currently has no orb collision response.
 
 ## Level tiers
 
@@ -66,8 +66,8 @@ Pending details above are not implemented gameplay and are tracked in `TODO.md` 
 
 Mechanics remain available after their introduction unless a generated level intentionally omits them. This progression interpretation will be validated when later tiers are implemented.
 
-Only Levels 01-05 are currently generated. They contain `min(2 + floor(level / 4), 7)` static targets with 14-unit radii, no hazards, and at least six tethers. Target centers have a deterministic minimum separation of 70 logical units and remain at least 110 units from the orb's initial center.
+Levels 01-12 are currently generated. All contain `min(2 + floor(level / 4), 7)` targets with 14-unit radii, no hazards, and deterministic initial centers separated by at least 70 logical units and 110 units from the orb spawn. Levels 01-05 keep every target static and grant at least six tethers. Levels 06-12 use the PRD tether formula and add seeded linear/circular motion.
 
 ## Progression
 
-Victory advances to the next numerical level and failure resets the current stage. At the present implementation boundary, victory on Level 05 cycles to Level 01; this temporary loop will be removed when Tier 06 lands. Restarting or revisiting a level reproduces its target positions and launch velocity exactly.
+Victory advances to the next numerical level and failure resets the current stage. At the present implementation boundary, victory on Level 12 cycles to Level 01; this temporary loop will be removed when Tier 13 lands. Restarting or revisiting a level reproduces target positions, paths, phases, and launch velocity exactly.

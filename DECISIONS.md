@@ -115,3 +115,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | CSS animations; render-delta effects; Web Animations; fixed-step Canvas effects. |
 | Rationale | All visuals already live on Canvas, and fixed-step updates make the required `240ms`/`60ms` timing reproducible in diagnostics. Continuing effects after terminal entry lets the final target visibly shatter instead of freezing on victory. |
 | Consequences | Effects can advance in six catch-up steps after a long frame. Recoil uses quadratic decay as a compact damp-back curve; facet speed/spin and the spring's 450ms safety lifetime are implementation choices beyond the PRD constants. |
+
+## ADR-012 — Give moving targets deterministic escape and orbit paths
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Guarantee one moving target in Levels 06-12, seed motion on the others at 50%, use `[72, 90)` units/s, send linear paths generally through center until they fully escape, and keep circular paths on `12-20` unit radii. Detect orb contact in relative swept space. |
+| Options considered | Move every target; preserve the pseudocode's independent 50% chance; guarantee one plus 50% for the rest; bounce linear targets; fail on partial boundary crossing; fail only after full-circle escape. |
+| Rationale | Guaranteeing one makes the tier mechanic present in every level. An inward initial heading prevents unfair near-edge instant losses, while unbounded travel preserves the tier's explicit escape failure. Relative sweeps correctly account for both bodies moving within a fixed step. |
+| Consequences | The pseudocode's ambiguous `speed: 1.5` is interpreted as a gameplay-scale `72-90` logical units/s range rather than literal units/s. Circular targets never normally escape. Progression now loops after Level 12 until Deflection lands. |

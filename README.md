@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**The core loop now has its complete kinetic feedback pass; Tier 06-12 is next.** Released cords retract with a damped spring, targets split into four sharp facets, impacts recoil the full canvas, and very high angular velocity makes the tether pulse—all with programmatic geometry and the PRD timing/constants.
+**Centrifugal Cuts is playable through Level 12; Deflection is next.** From Level 06, seeded targets follow linear escape trajectories or compact circular orbits, with relative swept collision and immediate failure when an active target fully leaves the canvas.
 
 ## Run locally
 
@@ -20,7 +20,7 @@ No package manager, dependency installation, bundler, or external asset download
 - Press the circular-arrow control at bottom right to restart the current level.
 - Clear every target before the allotted tether count reaches zero.
 
-The controls, physics, target collection, victory, and reset loop are interactive across the five generated Linear Orbits levels. After Level 05, the current milestone cycles to Level 01 until later tier commits extend progression; spike collision remains implemented but no spikes are generated in this tier.
+The controls and full core loop are interactive across Linear Orbits (01-05) and Centrifugal Cuts (06-12). After Level 12, the current milestone cycles to Level 01 until Deflection is implemented; spike collision remains implemented but no spikes are generated in these tiers.
 
 ## Project structure
 

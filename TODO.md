@@ -4,16 +4,15 @@ Last updated: 2026-09-25
 
 This list tracks product requirements not present in the checked-in implementation. Items are ordered by the requested delivery sequence; completed work is removed from the active list and reflected in `CHANGELOG.md`.
 
-## Next increment — Tier 06-12: Centrifugal Cuts
+## Next increment — Tier 13-20: Deflection
 
-- Add deterministic linear and circular moving-target paths for Levels 06-12.
-- Define seeded path selection, phase, speed, extents, and swept relative-motion collision.
-- Implement target-escape failure at the outer play boundary and remove the temporary Level 05-to-01 loop.
+- Add deterministic non-lethal line bouncers for Levels 13-20.
+- Implement swept orb-line contact, separation, and `1.1x` reflected return velocity.
+- Define repeat-contact suppression and move the temporary progression loop to Level 20.
 - Update all living documents, commit this increment alone, and push `main`.
 
 ## Remaining build order
 
-- Implement Tier 13-20 bouncers in a dedicated checkpoint.
 - Implement Tier 21-35 spike hazards in a dedicated checkpoint.
 - Implement Tier 36-50 paired wormholes in a dedicated checkpoint.
 - Implement Tier 51+ pulsar fields in a dedicated checkpoint.
@@ -29,7 +28,6 @@ This list tracks product requirements not present in the checked-in implementati
 - Choose the deterministic PRNG and exact Poisson-disc variant, including fallback when the sampler cannot produce enough entities. Record the result in a future ADR.
 - Define free-flight behavior at the logical play boundary and moving-target escape boundaries. Record the result in a future ADR.
 - Define bouncer reflection normals, endpoint contacts, separation, and repeat-hit suppression.
-- Define moving-target path lengths, phases, wrapping/reversal, and escape rules.
 - Define wormhole exit orientation, positional offset, and re-entry cooldown.
 - Define pulsar force formula, falloff, cadence, active duration, and stacking.
 - Validate the interpretation that mechanics accumulate after their introduction tier; supersede or amend ADR-001 only if rendering constraints force a change.
