@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: core state machine and pointer input
+Implementation checkpoint: dynamic tether physics
 
-This file describes the repository as implemented, not merely intended. The app currently provides a responsive Canvas 2D shell, runtime state contract, tether accounting, and one-pointer input. Orb physics, collision, level generation, and sound remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides a responsive Canvas 2D shell, runtime state contract, one-pointer input, and dynamic tether/free-flight motion. Collision, level generation, and sound remain pending.
 
 ## Runtime and delivery
 
@@ -16,17 +16,19 @@ This file describes the repository as implemented, not merely intended. The app 
 | Rendering | One Canvas 2D surface, selected in ADR-001. The current pass draws the background, logical boundary, and scaffold label. |
 | Browser launch | Runs by opening `index.html` directly or through a static server. |
 
-## Canonical physics baseline
+## Physics implementation
 
-The following formulas are required by PRD Section 3.2 but are **not yet implemented**:
+Anchor engagement implements the PRD Section 3.2 formulas directly:
 
 - Radial vector: `r = p_orb - p_anchor`.
 - Unit tangent: `t_hat = (-r_y / |r|, r_x / |r|)`.
 - Tangential projection: `v_tangent = v dot t_hat`.
 - Short-tether whip: when `|r_new| < |r_old|`, `v_tangent' = v_tangent * (|r_old| / |r_new|)^0.65`.
-- Bouncer return-speed multiplier: `1.1x` (collision response details remain unresolved).
+- When the new radius is shorter than the most recently released tether, the projected speed is multiplied by `(oldRadius / newRadius)^0.65`.
 
-No numerical integration method, close-anchor radius floor, free-flight boundary behavior, or collision sub-stepping policy has been implemented. Those gaps are tracked in `TODO.md` and will be recorded in `DECISIONS.md` when resolved.
+The simulation advances in fixed `1/60s` steps. Free flight uses constant-velocity Euler position updates. While tethered, the runtime stores radius, polar angle, and signed tangential speed; each step advances `angle += (tangentialSpeed / radius) * dt` and reconstructs exact circular position and tangent velocity. Releasing preserves that current tangent velocity. Frame time is clamped to `0.1s` before catch-up stepping.
+
+Anchors closer than `12` logical units are moved onto a `12`-unit effective radius along a radial direction chosen so its unit tangent aligns with the incoming velocity. This prevents zero-length normalization and unbounded radius ratios while retaining the tap's intended rotation direction (ADR-005). There is no free-flight boundary response yet. Bouncer physics remains unimplemented; its required return-speed multiplier is `1.1x`.
 
 ## Canonical design-token baseline
 
@@ -72,7 +74,7 @@ AWAITING_INPUT -> TETHERED -> FREE_FLIGHT
 Pressing in `AWAITING_INPUT` or `FREE_FLIGHT` with at least one tether creates an anchor, decrements the allowance, captures the primary pointer, and enters `TETHERED`. Releasing or cancelling the captured pointer clears the anchor and enters `FREE_FLIGHT`. If that release leaves active targets and no tether allowance, it immediately continues to `GAME_OVER`. Pressing on `GAME_OVER` resets the current level; pressing on `VICTORY` advances one level.
 ```
 
-Runtime data includes current state and level, tethers remaining, score streak, orb position/velocity/radius, active anchor, captured pointer ID, targets, and particles. Pointer coordinates are transformed from the displayed canvas rectangle into the fixed logical coordinate system. A read-only snapshot is available through `TetheraGame.getState()` for diagnostics.
+Runtime data includes current state and level, tethers remaining, score streak, orb position/velocity/radius, active anchor, captured pointer ID, active tether dynamics, prior tether radius, targets, and particles. Pointer coordinates are transformed from the displayed canvas rectangle into the fixed logical coordinate system. A read-only snapshot and explicit physics-step hook are available through `TetheraGame` for diagnostics.
 
 ## Canonical scaling baseline
 

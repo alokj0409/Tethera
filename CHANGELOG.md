@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Dynamic tether physics
+
+### Added
+
+- Added fixed-step free-flight and analytic tether-orbit motion.
+- Added radial-vector normalization, signed unit-tangent projection, and the exact `0.65` short-radius whip multiplier.
+- Added momentum-preserving tether release and prior-radius tracking between anchors.
+- Added a 12-unit close-anchor guard and a diagnostic physics-step hook.
+
+### Changed
+
+- The orb now moves continuously in `AWAITING_INPUT`, `TETHERED`, and `FREE_FLIGHT` states.
+
 ## [2026-09-25] — Core state and input
 
 ### Added

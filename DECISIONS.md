@@ -35,3 +35,23 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Fail immediately when the counter reaches zero; fail on release; allow indefinite free flight after the final release. |
 | Rationale | Immediate failure makes the final allotted tether unusable. Waiting until release preserves a complete press-hold-release opportunity while still enforcing the PRD loss condition before another anchor can be planted. |
 | Consequences | A player may hold the final tether indefinitely. If its motion clears the final target, victory takes precedence; otherwise release transitions through `FREE_FLIGHT` to `GAME_OVER`. |
+
+## ADR-004 — Use fixed-step free flight and analytic tether orbits
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Advance simulation at fixed `1/60s` intervals. Integrate untethered position from velocity and update a tethered orb analytically from its fixed radius, angle, and signed tangential speed. Clamp a rendered frame's contributed time to `0.1s`. |
+| Options considered | Variable-delta Euler integration; fixed-step constrained Euler integration; fixed-step analytic circular motion. |
+| Rationale | The PRD requires a fixed 60 FPS physics step. Analytic angular updates prevent the rigid tether from accumulating radial drift, while signed tangential speed preserves clockwise/counter-clockwise motion exactly. |
+| Consequences | With no other forces, tethered paths are circular rather than numerically elliptical. Pulsars will later alter tangential velocity/trajectory under a separately documented force rule. Background-tab time beyond `0.1s` per rendered frame is discarded. |
+
+## ADR-005 — Clamp ultra-close anchors to a 12-unit effective radius
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | If a pointer anchor is less than `12` logical units from the orb center, move its effective physics/render position onto a 12-unit radius whose tangent aligns with incoming velocity. |
+| Options considered | Ignore the press; clamp only the divisor while drawing at the pointer; use an arbitrary fixed axis; shift the effective anchor along a velocity-derived radial axis. |
+| Rationale | A non-zero geometric radius avoids division by zero and visually matches the simulated tether. Deriving the radial direction from velocity avoids an arbitrary clockwise/counter-clockwise flip and the 12-unit distance separates the 9-unit orb from the 3-unit anchor. |
+| Consequences | Ultra-close taps may render up to 12 logical units from the literal pointer position. The whip scalar remains finite, though it can still produce intentionally large speeds after a much longer prior tether. |

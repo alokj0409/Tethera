@@ -3,6 +3,10 @@
 
   const LOGICAL_WIDTH = 390;
   const LOGICAL_HEIGHT = 844;
+  const FIXED_TIME_STEP = 1 / 60;
+  const MAX_FRAME_DELTA = 0.1;
+  const MIN_TETHER_RADIUS = 12;
+  const VECTOR_EPSILON = 1e-6;
 
   const COLORS = Object.freeze({
     background: "#111215",
@@ -65,6 +69,8 @@
     },
     activeAnchor: null,
     activePointerId: null,
+    tether: null,
+    lastTetherRadius: null,
     targets: [],
     particles: [],
   };
@@ -88,6 +94,8 @@
     runtime.orb.vel.y = -18;
     runtime.activeAnchor = null;
     runtime.activePointerId = null;
+    runtime.tether = null;
+    runtime.lastTetherRadius = null;
     runtime.targets = createPlaceholderTargets();
     runtime.particles = [];
     renderScene();
@@ -114,6 +122,78 @@
 
   function hasActiveTargets() {
     return runtime.targets.some((target) => target.active);
+  }
+
+  function createTether(pointerAnchor) {
+    let anchor = { ...pointerAnchor };
+    let radialX = runtime.orb.pos.x - anchor.x;
+    let radialY = runtime.orb.pos.y - anchor.y;
+    let radius = Math.hypot(radialX, radialY);
+
+    if (radius < MIN_TETHER_RADIUS) {
+      const speed = Math.hypot(runtime.orb.vel.x, runtime.orb.vel.y);
+      const unitRadialX =
+        speed > VECTOR_EPSILON ? runtime.orb.vel.y / speed : 1;
+      const unitRadialY =
+        speed > VECTOR_EPSILON ? -runtime.orb.vel.x / speed : 0;
+
+      anchor = {
+        x: runtime.orb.pos.x - unitRadialX * MIN_TETHER_RADIUS,
+        y: runtime.orb.pos.y - unitRadialY * MIN_TETHER_RADIUS,
+      };
+      radialX = unitRadialX * MIN_TETHER_RADIUS;
+      radialY = unitRadialY * MIN_TETHER_RADIUS;
+      radius = MIN_TETHER_RADIUS;
+    }
+
+    const tangentX = -radialY / radius;
+    const tangentY = radialX / radius;
+    const projectedSpeed =
+      runtime.orb.vel.x * tangentX + runtime.orb.vel.y * tangentY;
+    const whipScalar =
+      runtime.lastTetherRadius !== null && radius < runtime.lastTetherRadius
+        ? (runtime.lastTetherRadius / radius) ** 0.65
+        : 1;
+    const tangentialSpeed = projectedSpeed * whipScalar;
+
+    runtime.orb.vel.x = tangentX * tangentialSpeed;
+    runtime.orb.vel.y = tangentY * tangentialSpeed;
+
+    return {
+      anchor,
+      radius,
+      angle: Math.atan2(radialY, radialX),
+      tangentialSpeed,
+      whipScalar,
+    };
+  }
+
+  function updatePhysics(deltaSeconds) {
+    if (
+      runtime.currentState === GAME_STATE.VICTORY ||
+      runtime.currentState === GAME_STATE.GAME_OVER
+    ) {
+      return;
+    }
+
+    if (runtime.currentState === GAME_STATE.TETHERED && runtime.tether) {
+      const tether = runtime.tether;
+      tether.angle += (tether.tangentialSpeed / tether.radius) * deltaSeconds;
+
+      const radialX = Math.cos(tether.angle);
+      const radialY = Math.sin(tether.angle);
+      const tangentX = -radialY;
+      const tangentY = radialX;
+
+      runtime.orb.pos.x = tether.anchor.x + radialX * tether.radius;
+      runtime.orb.pos.y = tether.anchor.y + radialY * tether.radius;
+      runtime.orb.vel.x = tangentX * tether.tangentialSpeed;
+      runtime.orb.vel.y = tangentY * tether.tangentialSpeed;
+      return;
+    }
+
+    runtime.orb.pos.x += runtime.orb.vel.x * deltaSeconds;
+    runtime.orb.pos.y += runtime.orb.vel.y * deltaSeconds;
   }
 
   function handlePointerDown(event) {
@@ -143,8 +223,10 @@
       return;
     }
 
-    runtime.activeAnchor = logicalPointFromPointer(event);
+    const tether = createTether(logicalPointFromPointer(event));
+    runtime.activeAnchor = tether.anchor;
     runtime.activePointerId = event.pointerId;
+    runtime.tether = tether;
     runtime.tethersRemaining -= 1;
     canvas.setPointerCapture(event.pointerId);
     transitionTo(GAME_STATE.TETHERED);
@@ -160,8 +242,10 @@
     }
 
     event.preventDefault();
+    runtime.lastTetherRadius = runtime.tether?.radius ?? runtime.lastTetherRadius;
     runtime.activeAnchor = null;
     runtime.activePointerId = null;
+    runtime.tether = null;
     transitionTo(GAME_STATE.FREE_FLIGHT);
 
     if (runtime.tethersRemaining === 0 && hasActiveTargets()) {
@@ -308,6 +392,30 @@
     renderScene();
   }
 
+  let previousFrameTime = null;
+  let accumulatedTime = 0;
+
+  function frame(timestamp) {
+    if (previousFrameTime === null) {
+      previousFrameTime = timestamp;
+    }
+
+    const frameDelta = Math.min(
+      (timestamp - previousFrameTime) / 1000,
+      MAX_FRAME_DELTA,
+    );
+    previousFrameTime = timestamp;
+    accumulatedTime += frameDelta;
+
+    while (accumulatedTime >= FIXED_TIME_STEP) {
+      updatePhysics(FIXED_TIME_STEP);
+      accumulatedTime -= FIXED_TIME_STEP;
+    }
+
+    renderScene();
+    window.requestAnimationFrame(frame);
+  }
+
   canvas.addEventListener("pointerdown", handlePointerDown);
   canvas.addEventListener("pointerup", releaseActiveTether);
   canvas.addEventListener("pointercancel", releaseActiveTether);
@@ -328,8 +436,13 @@
     states: GAME_STATE,
     getState: () => structuredClone(runtime),
     resetLevel: () => initializeLevel(runtime.currentLevelIndex),
+    stepForDiagnostics: (seconds = FIXED_TIME_STEP) => {
+      updatePhysics(seconds);
+      renderScene();
+    },
   });
 
   resizeCanvas();
   initializeLevel();
+  window.requestAnimationFrame(frame);
 })();

@@ -4,16 +4,15 @@ Last updated: 2026-09-25
 
 This list tracks product requirements not present in the checked-in implementation. Items are ordered by the requested delivery sequence; completed work is removed from the active list and reflected in `CHANGELOG.md`.
 
-## Next increment — Tether physics
+## Next increment — Token-complete rendering
 
-- Add fixed-step orb integration for free flight and tethered motion.
-- Implement radial vectors, tangent projection, momentum preservation, and the exact `0.65` whip scalar.
-- Define and document the safe close-anchor radius and numerical integration details.
+- Replace placeholder geometry with the full token-driven orb, anchor, tether, target, and hazard vocabulary.
+- Finish the production HUD for level, target progress, tether allowance, and restart control.
+- Keep every visual programmatic, flat, crisp, and free of gradients, glow, blur, and external assets.
 - Update all living documents, commit this increment alone, and push `main`.
 
 ## Remaining build order
 
-- Implement token-driven drawing for the orb, anchor, tether, target, hazard, and HUD.
 - Implement target circle collision, hazard/bouncer line contact, and victory/failure transitions.
 - Implement deterministic seeded generation and Poisson-disc placement for Tier 01-05.
 - Add `audio.js` Web Audio synthesis for snap, chime, shatter, and fail events.
@@ -32,8 +31,6 @@ This list tracks product requirements not present in the checked-in implementati
 
 ## Open judgments
 
-- Define fixed simulation step, frame-delta clamp, maximum catch-up steps, and collision sub-stepping. Record the result in a future ADR.
-- Define the safe minimum tether radius and behavior for an anchor placed directly on the orb. Record the result in a future ADR.
 - Choose the deterministic PRNG and exact Poisson-disc variant, including fallback when the sampler cannot produce enough entities. Record the result in a future ADR.
 - Define free-flight behavior at the logical play boundary and moving-target escape boundaries. Record the result in a future ADR.
 - Define spike collision geometry and swept-contact handling.

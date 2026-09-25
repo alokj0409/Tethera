@@ -1,9 +1,9 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: core state machine and pointer input
+Implementation checkpoint: dynamic tether physics
 
-This file is the definitive rules reference for the checked-in game. State transitions, input, and tether accounting are active; physical motion, contacts, and procedural tiers remain canonical requirements until their implementation checkpoints land.
+This file is the definitive rules reference for the checked-in game. State transitions, input, tether accounting, and orb/tether motion are active; contacts and procedural tiers remain canonical requirements until their implementation checkpoints land.
 
 ## Objective
 
@@ -37,7 +37,9 @@ When a newly planted anchor produces a shorter radius than the previous radius, 
 v_tangent' = v_tangent * (|r_old| / |r_new|)^0.65
 ```
 
-The orb's speed is never intentionally killed when an anchor is placed. The exponent is fixed at `0.65`. A minimum safe radius for an anchor placed at or extremely near the orb is not defined yet.
+The signed tangential projection becomes the orb's tethered speed. If the new radius is shorter than the last released tether radius, it is multiplied by the exact `0.65` power scalar above. Longer or first tethers receive no scalar. A held tether advances around a constant radius using `angularVelocity = tangentialSpeed / radius`; release retains the current tangent velocity.
+
+An anchor placed closer than `12` logical units to the orb is shifted to an effective `12`-unit radius. Its fallback radial direction is perpendicular to the incoming velocity so that the initial unit tangent aligns with that velocity. Free flight advances at constant velocity. No outer-boundary response exists yet, so an untethered orb can leave the logical field in this checkpoint.
 
 ## Contacts and entities
 
