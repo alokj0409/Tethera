@@ -9,6 +9,8 @@
   const MAX_TRAVEL_PER_SUBSTEP = 6;
   const MAX_COLLISION_SUBSTEPS = 8;
   const MIN_TETHER_RADIUS = 12;
+  const LOW_SPEED_THRESHOLD = 48;
+  const LOW_SPEED_RECOVERY_SPEED = 72;
   const VECTOR_EPSILON = 1e-6;
   const LEVEL_SEED_MULTIPLIER = 49297;
   const POISSON_MIN_DISTANCE = 70;
@@ -503,13 +505,17 @@
     let radialX = runtime.orb.pos.x - anchor.x;
     let radialY = runtime.orb.pos.y - anchor.y;
     let radius = Math.hypot(radialX, radialY);
+    const incomingSpeed = Math.hypot(runtime.orb.vel.x, runtime.orb.vel.y);
 
     if (radius < MIN_TETHER_RADIUS) {
-      const speed = Math.hypot(runtime.orb.vel.x, runtime.orb.vel.y);
       const unitRadialX =
-        speed > VECTOR_EPSILON ? runtime.orb.vel.y / speed : 1;
+        incomingSpeed > VECTOR_EPSILON
+          ? runtime.orb.vel.y / incomingSpeed
+          : 1;
       const unitRadialY =
-        speed > VECTOR_EPSILON ? -runtime.orb.vel.x / speed : 0;
+        incomingSpeed > VECTOR_EPSILON
+          ? -runtime.orb.vel.x / incomingSpeed
+          : 0;
 
       anchor = {
         x: runtime.orb.pos.x - unitRadialX * MIN_TETHER_RADIUS,
@@ -528,7 +534,17 @@
       runtime.lastTetherRadius !== null && radius < runtime.lastTetherRadius
         ? (runtime.lastTetherRadius / radius) ** 0.65
         : 1;
-    const tangentialSpeed = projectedSpeed * whipScalar;
+    const whippedSpeed = projectedSpeed * whipScalar;
+    const recoveryAssist =
+      incomingSpeed < LOW_SPEED_THRESHOLD &&
+      Math.abs(whippedSpeed) < LOW_SPEED_RECOVERY_SPEED;
+    const recoveryDirection =
+      Math.abs(projectedSpeed) > VECTOR_EPSILON
+        ? Math.sign(projectedSpeed)
+        : 1;
+    const tangentialSpeed = recoveryAssist
+      ? recoveryDirection * LOW_SPEED_RECOVERY_SPEED
+      : whippedSpeed;
 
     runtime.orb.vel.x = tangentX * tangentialSpeed;
     runtime.orb.vel.y = tangentY * tangentialSpeed;
@@ -539,6 +555,7 @@
       angle: Math.atan2(radialY, radialX),
       tangentialSpeed,
       whipScalar,
+      recoveryAssist,
     };
   }
 
@@ -1577,6 +1594,17 @@
 
     if (runtime.currentState === GAME_STATE.AWAITING_INPUT) {
       drawTrackedText("PRESS TO TETHER", 195, 754, { align: "center" });
+      return;
+    }
+
+    if (
+      runtime.currentState === GAME_STATE.TETHERED &&
+      runtime.tether?.recoveryAssist
+    ) {
+      drawTrackedText("RECOVERY IMPULSE", 195, 754, {
+        align: "center",
+        color: COLORS.tether,
+      });
     }
   }
 

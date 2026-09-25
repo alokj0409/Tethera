@@ -45,6 +45,7 @@ Anchor engagement implements the PRD Section 3.2 formulas directly:
 - Tangential projection: `v_tangent = v dot t_hat`.
 - Short-tether whip: when `|r_new| < |r_old|`, `v_tangent' = v_tangent * (|r_old| / |r_new|)^0.65`.
 - When the new radius is shorter than the most recently released tether, the projected speed is multiplied by `(oldRadius / newRadius)^0.65`.
+- When incoming speed is below `48 logical units/s` and the formula above produces a magnitude below `72 logical units/s`, a recovery assist floors signed tangential speed at `72`. A nonzero projection preserves its sign; an exactly stalled orb defaults to the positive unit-tangent direction (clockwise on the Canvas). Normal-speed and successful-whip results are unchanged.
 
 The simulation advances in fixed `1/60s` steps. Free flight uses constant-velocity Euler position updates. While tethered, the runtime stores radius, polar angle, and signed tangential speed; each step advances `angle += (tangentialSpeed / radius) * dt` and reconstructs exact circular position and tangent velocity. Releasing preserves that current tangent velocity. Frame time is clamped to `0.1s`, no frame performs more than six catch-up steps, and excess backlog is discarded.
 
@@ -140,3 +141,4 @@ A stubbed Canvas run of 6,000 combined update/render steps completed in about `1
 - Linear Orbits enforces a six-tether floor instead of the PRD pseudocode's lower result, resolving the conflict in favor of the explicit tier table.
 - The sample hazard-count formula would introduce hazards at Level 13, but the implemented generator follows the progression table and waits until Level 21.
 - Safe-area padding is applied outside the logical game surface, so the aspect-fit calculation uses only unobstructed content space.
+- A consumed tether provides a `72 logical units/s` anti-stall floor below the `48 logical units/s` threshold. This explicitly extends the PRD formula because multiplying a zero or near-zero projection cannot recover momentum; ADR-019 records the accessibility tradeoff.

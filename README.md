@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Complete: every PRD progression tier, presentation system, audio cue, and final runtime hardening pass is implemented.** Restart now reliably restores a moving, deterministically seeded orb after every failure path; the build has automated coverage across iPhone SE, 390-wide, tall 20:9, and large Android viewport/DPR combinations.
+**Complete: every PRD progression tier, presentation system, audio cue, and final runtime hardening pass is implemented.** Low-speed recovery now makes stalled runs playable without changing normal whip physics; restart reliably restores the deterministic launch after every failure path.
 
 ## Run locally
 
@@ -17,6 +17,7 @@ No package manager, dependency installation, bundler, or external asset download
 - Press or touch anywhere in the play area to plant an anchor and tether the orb.
 - Hold to keep the tether active and orbit the anchor.
 - Release to snap the tether and continue in free flight.
+- If the orb becomes very slow, plant one new anchor to trigger a visible recovery impulse.
 - Press the circular-arrow control at bottom right to restart the current level.
 - Clear every gold target before the allotted tether count reaches zero. Shorter anchors create faster whip turns.
 - Avoid red spikes. Gray bouncers reflect and accelerate the orb; paired rings teleport it; pulsars bend its flight during their active beat.

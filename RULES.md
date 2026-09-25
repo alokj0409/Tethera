@@ -40,6 +40,8 @@ v_tangent' = v_tangent * (|r_old| / |r_new|)^0.65
 
 The signed tangential projection becomes the orb's tethered speed. If the new radius is shorter than the last released tether radius, it is multiplied by the exact `0.65` power scalar above. Longer or first tethers receive no scalar. A held tether advances around a constant radius using `angularVelocity = tangentialSpeed / radius`; release retains the current tangent velocity.
 
+Low-speed recovery applies only when incoming speed is below `48 logical units/s`. If the normal projection and whip formula produce a magnitude below `72 logical units/s`, the tether begins at a signed speed of `72` and displays `RECOVERY IMPULSE`. A nonzero projection determines direction; a perfectly stationary orb defaults clockwise. The anchor still consumes one tether.
+
 An anchor placed closer than `12` logical units to the orb is shifted to an effective `12`-unit radius. Its fallback radial direction is perpendicular to the incoming velocity so that the initial unit tangent aligns with that velocity. Free flight advances at constant velocity until another force or contact changes it. The orb reflects elastically from the rectangular play boundary spanning `(24, 84)` through `(366, 780)`; this preserves speed magnitude. A boundary hit while tethered snaps the tether and continues in free flight, with the normal final-tether loss rule still applying.
 
 ## Contacts and entities

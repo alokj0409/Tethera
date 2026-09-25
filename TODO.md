@@ -20,7 +20,12 @@ This list tracks product requirements not present in the checked-in implementati
 
 - None currently open. Boundary reflection is recorded in ADR-018, and cumulative tier mechanics are now implemented.
 
+## Resolved judgments
+
+- ADR-019 records the user-requested anti-stall recovery floor and its intentional extension of the canonical tether formula.
+
 ## Decision cross-references
 
 - ADR-001 selects one Canvas 2D surface for the game and HUD; accessibility mapping remains an implementation concern.
 - ADR-018 records boundary reflection, adaptive collision passes, and bounded catch-up work.
+- ADR-019 records low-speed recovery thresholds, direction handling, and the tether-cost tradeoff.

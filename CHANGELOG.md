@@ -6,6 +6,17 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Low-speed recovery
+
+### Added
+
+- Added a tether-costed recovery impulse when incoming orb speed falls below 48 logical units/s.
+- Added in-play `RECOVERY IMPULSE` feedback while the assist is active.
+
+### Changed
+
+- Floored assisted tangential speed at 72 logical units/s without changing normal projection or whip results.
+
 ## [2026-09-25] — Restart recovery
 
 ### Fixed

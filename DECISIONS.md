@@ -185,3 +185,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Let the orb leave permanently; reset on escape; wrap at edges; elastic reflection; unbounded catch-up; swept tests alone; adaptive substeps with and without a cap. |
 | Rationale | Reflection keeps every trajectory recoverable and makes the field edge readable. A tether cannot remain analytically circular after a wall response without discarding the reflection, so it must snap. Adaptive passes harden curved high-speed motion, while hard caps prevent a stalled tab from creating a spiral of death. |
 | Consequences | Boundary contacts can consume the opportunity of a final held tether. A pause longer than `0.1s` intentionally drops elapsed simulation time. Travel above 48 logical units per fixed step can exceed the six-unit target, but swept collision remains active inside each capped pass. |
+
+## ADR-019 — Add a tether-costed anti-stall recovery floor
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | When incoming orb speed is below `48 logical units/s`, keep the exact projection and `0.65` whip calculation, then floor the result to signed `72 logical units/s` only if its magnitude remains lower. Use projection sign when available and the positive unit-tangent direction (clockwise on the Canvas) for an exact stall. |
+| Options considered | Preserve unrecoverable stalls; continuously accelerate slow free flight; raise all tether results; add a dedicated control; apply a conditional floor through the existing tether action. |
+| Rationale | The PRD's multiplicative formula cannot recover from zero and makes near-stalls disproportionately costly on a one-thumb interface. Reusing a consumed tether keeps the control model intact, while limiting the floor to low incoming speed leaves normal whips unchanged. |
+| Consequences | This is an intentional accessibility extension beyond the exact PRD formula. It creates a small amount of kinetic energy, costs one tether, and displays `RECOVERY IMPULSE` while held so the rule is legible. |
