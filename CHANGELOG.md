@@ -6,6 +6,20 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Final QA and runtime hardening
+
+### Added
+
+- Added adaptive collision substeps for extreme orb speeds.
+- Added elastic reflection at the visible logical play boundary.
+- Added automated viewport/DPR coverage for iPhone SE, 390-wide, tall 20:9, and large Android layouts.
+
+### Changed
+
+- Limited each animation frame to six fixed catch-up steps and discarded excess paused-tab backlog.
+- Centralized forced tether release for bouncer, wormhole, and boundary responses.
+- Reconciled all living documentation with the completed implementation.
+
 ## [2026-09-25] — Pulsar Fields
 
 ### Added

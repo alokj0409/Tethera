@@ -4,13 +4,13 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**All progression tiers are implemented; cross-viewport QA and final performance polish are next.** Level 51 unlocks seeded pulsars with smooth periodic gravity envelopes, softened inverse-square attraction, capped acceleration, and tangential projection while tethered; generation now continues deterministically without a level cap.
+**Complete: every PRD progression tier, presentation system, audio cue, and final runtime hardening pass is implemented.** The build has automated coverage across iPhone SE, 390-wide, tall 20:9, and large Android viewport/DPR combinations; deterministic generation continues without a level cap.
 
 ## Run locally
 
-Open `index.html` directly in a modern browser, or serve this directory with any static file server and open its root URL. The current scaffold displays the TETHERA logical playfield; gameplay is added in later checkpoints.
+Open `index.html` directly in a modern browser, or serve this directory with any static file server and open its root URL.
 
-No package manager, dependency installation, bundler, or external asset download will be required.
+No package manager, dependency installation, bundler, or external asset download is required.
 
 ## Controls
 
@@ -18,7 +18,8 @@ No package manager, dependency installation, bundler, or external asset download
 - Hold to keep the tether active and orbit the anchor.
 - Release to snap the tether and continue in free flight.
 - Press the circular-arrow control at bottom right to restart the current level.
-- Clear every target before the allotted tether count reaches zero.
+- Clear every gold target before the allotted tether count reaches zero. Shorter anchors create faster whip turns.
+- Avoid red spikes. Gray bouncers reflect and accelerate the orb; paired rings teleport it; pulsars bend its flight during their active beat.
 
 The controls and full core loop are interactive across Linear Orbits (01-05), Centrifugal Cuts (06-12), Deflection (13-20), Spike Strata (21-35), Wormhole Nodes (36-50), and unbounded Pulsar Fields (51+).
 
@@ -38,7 +39,7 @@ Tethera/
 `-- TODO.md        Remaining requirements, known issues, and open judgments
 ```
 
-All three required runtime files are present; later checkpoints extend `game.js` without adding a build system or dependency layer.
+All three required runtime files are present, with no build system or dependency layer.
 
 ## Source of truth
 

@@ -175,3 +175,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Constant on/off gravity; sine envelope; linear envelope; inverse distance; inverse square; uncapped force; radial tether displacement; tangent-only tether acceleration. |
 | Rationale | A sine envelope enters and exits without a force discontinuity. Softened inverse-square falloff produces local warping without a center singularity, and the cap protects integration. Tangent projection changes orbital energy while honoring the rigid tether. Three poles bound per-step work even as levels continue indefinitely. |
 | Consequences | Pulsars cannot directly change tether radius; they alter angular speed until release. Overlapping pulses add before the per-pole cap, so combined acceleration can exceed 260. Level seeds remain 32-bit via `Math.imul`, and levels are accepted up to JavaScript's maximum safe integer. |
+
+## ADR-018 — Bound catch-up work and reflect the orb inside the playfield
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Clamp each frame to `0.1s`, run at most six fixed catch-up steps, divide each step into at most eight collision passes targeting six logical units of travel, and elastically reflect the orb inside `(24, 84)` through `(366, 780)`. A tethered boundary hit snaps to free flight. |
+| Options considered | Let the orb leave permanently; reset on escape; wrap at edges; elastic reflection; unbounded catch-up; swept tests alone; adaptive substeps with and without a cap. |
+| Rationale | Reflection keeps every trajectory recoverable and makes the field edge readable. A tether cannot remain analytically circular after a wall response without discarding the reflection, so it must snap. Adaptive passes harden curved high-speed motion, while hard caps prevent a stalled tab from creating a spiral of death. |
+| Consequences | Boundary contacts can consume the opportunity of a final held tether. A pause longer than `0.1s` intentionally drops elapsed simulation time. Travel above 48 logical units per fixed step can exceed the six-unit target, but swept collision remains active inside each capped pass. |

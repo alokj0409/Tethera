@@ -5,6 +5,9 @@
   const LOGICAL_HEIGHT = 844;
   const FIXED_TIME_STEP = 1 / 60;
   const MAX_FRAME_DELTA = 0.1;
+  const MAX_CATCH_UP_STEPS = 6;
+  const MAX_TRAVEL_PER_SUBSTEP = 6;
+  const MAX_COLLISION_SUBSTEPS = 8;
   const MIN_TETHER_RADIUS = 12;
   const VECTOR_EPSILON = 1e-6;
   const LEVEL_SEED_MULTIPLIER = 49297;
@@ -27,6 +30,12 @@
   const PULSAR_ACTIVE_DURATION = 0.55;
   const PULSAR_SOFTENING = 36;
   const PULSAR_MAX_ACCELERATION = 260;
+  const ORB_BOUNDS = Object.freeze({
+    left: 24,
+    right: LOGICAL_WIDTH - 24,
+    top: 84,
+    bottom: LOGICAL_HEIGHT - 64,
+  });
   const TARGET_ESCAPE_BOUNDS = Object.freeze({
     left: 0,
     right: LOGICAL_WIDTH,
@@ -527,6 +536,21 @@
     };
   }
 
+  function forceReleaseActiveTether() {
+    if (runtime.currentState !== GAME_STATE.TETHERED || !runtime.tether) {
+      return false;
+    }
+
+    startTetherSnap();
+    runtime.lastTetherRadius = runtime.tether.radius;
+    runtime.activeAnchor = null;
+    runtime.activePointerId = null;
+    runtime.tether = null;
+    transitionTo(GAME_STATE.FREE_FLIGHT);
+    playSound("playSnap");
+    return true;
+  }
+
   function squaredDistancePointToSegment(point, segmentStart, segmentEnd) {
     const segmentX = segmentEnd.x - segmentStart.x;
     const segmentY = segmentEnd.y - segmentStart.y;
@@ -837,15 +861,7 @@
     runtime.orb.pos.y = nearest.y + normalY * (runtime.orb.radius + 0.5);
     bouncer.cooldown = BOUNCER_CONTACT_COOLDOWN;
 
-    if (runtime.currentState === GAME_STATE.TETHERED) {
-      startTetherSnap();
-      runtime.lastTetherRadius = runtime.tether.radius;
-      runtime.activeAnchor = null;
-      runtime.activePointerId = null;
-      runtime.tether = null;
-      transitionTo(GAME_STATE.FREE_FLIGHT);
-      playSound("playSnap");
-
+    if (forceReleaseActiveTether()) {
       if (runtime.tethersRemaining === 0 && hasActiveTargets()) {
         enterTerminalState(GAME_STATE.GAME_OVER);
       }
@@ -874,15 +890,7 @@
         continue;
       }
 
-      if (runtime.currentState === GAME_STATE.TETHERED) {
-        startTetherSnap();
-        runtime.lastTetherRadius = runtime.tether.radius;
-        runtime.activeAnchor = null;
-        runtime.activePointerId = null;
-        runtime.tether = null;
-        transitionTo(GAME_STATE.FREE_FLIGHT);
-        playSound("playSnap");
-      }
+      forceReleaseActiveTether();
 
       const speed = Math.hypot(runtime.orb.vel.x, runtime.orb.vel.y);
       const rotationDelta =
@@ -962,6 +970,54 @@
     runtime.orb.vel.y += accelerationY * deltaSeconds;
   }
 
+  function reflectOrbAtBoundary() {
+    const minimumX = ORB_BOUNDS.left + runtime.orb.radius;
+    const maximumX = ORB_BOUNDS.right - runtime.orb.radius;
+    const minimumY = ORB_BOUNDS.top + runtime.orb.radius;
+    const maximumY = ORB_BOUNDS.bottom - runtime.orb.radius;
+    let hitBoundary = false;
+
+    if (runtime.orb.pos.x < minimumX) {
+      runtime.orb.pos.x = Math.min(
+        maximumX,
+        minimumX + (minimumX - runtime.orb.pos.x),
+      );
+      runtime.orb.vel.x = Math.abs(runtime.orb.vel.x);
+      hitBoundary = true;
+    } else if (runtime.orb.pos.x > maximumX) {
+      runtime.orb.pos.x = Math.max(
+        minimumX,
+        maximumX - (runtime.orb.pos.x - maximumX),
+      );
+      runtime.orb.vel.x = -Math.abs(runtime.orb.vel.x);
+      hitBoundary = true;
+    }
+
+    if (runtime.orb.pos.y < minimumY) {
+      runtime.orb.pos.y = Math.min(
+        maximumY,
+        minimumY + (minimumY - runtime.orb.pos.y),
+      );
+      runtime.orb.vel.y = Math.abs(runtime.orb.vel.y);
+      hitBoundary = true;
+    } else if (runtime.orb.pos.y > maximumY) {
+      runtime.orb.pos.y = Math.max(
+        minimumY,
+        maximumY - (runtime.orb.pos.y - maximumY),
+      );
+      runtime.orb.vel.y = -Math.abs(runtime.orb.vel.y);
+      hitBoundary = true;
+    }
+
+    if (hitBoundary && forceReleaseActiveTether()) {
+      if (runtime.tethersRemaining === 0 && hasActiveTargets()) {
+        enterTerminalState(GAME_STATE.GAME_OVER);
+      }
+    }
+
+    return hitBoundary;
+  }
+
   function resolveCollisions(start, end, targetStarts) {
     if (runtime.hazards.some((hazard) => sweptOrbHitsHazard(start, end, hazard))) {
       enterTerminalState(GAME_STATE.GAME_OVER);
@@ -1020,7 +1076,7 @@
     }
   }
 
-  function updatePhysics(deltaSeconds) {
+  function updateSimulationStep(deltaSeconds) {
     updateEffects(deltaSeconds);
 
     if (
@@ -1052,13 +1108,35 @@
       runtime.orb.pos.y = tether.anchor.y + radialY * tether.radius;
       runtime.orb.vel.x = tangentX * tether.tangentialSpeed;
       runtime.orb.vel.y = tangentY * tether.tangentialSpeed;
+      reflectOrbAtBoundary();
+      if (runtime.currentState === GAME_STATE.GAME_OVER) {
+        return;
+      }
       resolveCollisions(start, runtime.orb.pos, movingTargets.starts);
       return;
     }
 
     runtime.orb.pos.x += runtime.orb.vel.x * deltaSeconds;
     runtime.orb.pos.y += runtime.orb.vel.y * deltaSeconds;
+    reflectOrbAtBoundary();
+    if (runtime.currentState === GAME_STATE.GAME_OVER) {
+      return;
+    }
     resolveCollisions(start, runtime.orb.pos, movingTargets.starts);
+  }
+
+  function updatePhysics(deltaSeconds) {
+    const estimatedTravel =
+      Math.hypot(runtime.orb.vel.x, runtime.orb.vel.y) * deltaSeconds;
+    const substeps = Math.min(
+      MAX_COLLISION_SUBSTEPS,
+      Math.max(1, Math.ceil(estimatedTravel / MAX_TRAVEL_PER_SUBSTEP)),
+    );
+    const substepDuration = deltaSeconds / substeps;
+
+    for (let index = 0; index < substeps; index += 1) {
+      updateSimulationStep(substepDuration);
+    }
   }
 
   function handlePointerDown(event) {
@@ -1169,6 +1247,12 @@
   function drawGrid() {
     context.strokeStyle = COLORS.subtle;
     context.lineWidth = 1;
+    context.strokeRect(
+      ORB_BOUNDS.left + 0.5,
+      ORB_BOUNDS.top + 0.5,
+      ORB_BOUNDS.right - ORB_BOUNDS.left - 1,
+      ORB_BOUNDS.bottom - ORB_BOUNDS.top - 1,
+    );
 
     for (let y = 128; y <= 704; y += 96) {
       for (let x = 51; x <= 339; x += 72) {
@@ -1570,9 +1654,18 @@
     previousFrameTime = timestamp;
     accumulatedTime += frameDelta;
 
-    while (accumulatedTime >= FIXED_TIME_STEP) {
+    let catchUpSteps = 0;
+    while (
+      accumulatedTime >= FIXED_TIME_STEP &&
+      catchUpSteps < MAX_CATCH_UP_STEPS
+    ) {
       updatePhysics(FIXED_TIME_STEP);
       accumulatedTime -= FIXED_TIME_STEP;
+      catchUpSteps += 1;
+    }
+
+    if (catchUpSteps === MAX_CATCH_UP_STEPS) {
+      accumulatedTime = 0;
     }
 
     renderScene();

@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: Pulsar Fields (Levels 51+)
+Implementation checkpoint: Final QA and runtime hardening
 
-This file describes the repository as implemented, not merely intended. The app currently provides the complete core loop and deterministic generation for every progression tier, including unbounded Pulsar Fields. Cross-viewport QA and final performance/collision hardening remain pending.
+This file describes the repository as implemented, not merely intended. The app provides the complete core loop, deterministic generation for every progression tier, adaptive collision stepping, logical-field reflection, and cross-viewport runtime hardening.
 
 ## Motion feedback
 
@@ -29,11 +29,11 @@ All nodes are short-lived and connect through the shared master. Noise buffers a
 
 | Area | Current implementation |
 | --- | --- |
-| Application files | `index.html` and `game.js` implement the canvas shell; `audio.js` is pending. |
-| Build step | None planned or permitted. |
-| Runtime dependencies | None planned or permitted. |
-| Assets | No external image, audio, or font assets planned or permitted. |
-| Rendering | One Canvas 2D surface, selected in ADR-001. The current pass draws the background, logical boundary, and scaffold label. |
+| Application files | `index.html`, `game.js`, and `audio.js` implement the complete game. |
+| Build step | None. |
+| Runtime dependencies | None. |
+| Assets | No external image, audio, or font assets. |
+| Rendering | One Canvas 2D surface draws the complete playfield, entities, effects, HUD, and terminal panels. |
 | Browser launch | Runs by opening `index.html` directly or through a static server. |
 
 ## Physics implementation
@@ -46,9 +46,9 @@ Anchor engagement implements the PRD Section 3.2 formulas directly:
 - Short-tether whip: when `|r_new| < |r_old|`, `v_tangent' = v_tangent * (|r_old| / |r_new|)^0.65`.
 - When the new radius is shorter than the most recently released tether, the projected speed is multiplied by `(oldRadius / newRadius)^0.65`.
 
-The simulation advances in fixed `1/60s` steps. Free flight uses constant-velocity Euler position updates. While tethered, the runtime stores radius, polar angle, and signed tangential speed; each step advances `angle += (tangentialSpeed / radius) * dt` and reconstructs exact circular position and tangent velocity. Releasing preserves that current tangent velocity. Frame time is clamped to `0.1s` before catch-up stepping.
+The simulation advances in fixed `1/60s` steps. Free flight uses constant-velocity Euler position updates. While tethered, the runtime stores radius, polar angle, and signed tangential speed; each step advances `angle += (tangentialSpeed / radius) * dt` and reconstructs exact circular position and tangent velocity. Releasing preserves that current tangent velocity. Frame time is clamped to `0.1s`, no frame performs more than six catch-up steps, and excess backlog is discarded.
 
-Anchors closer than `12` logical units are moved onto a `12`-unit effective radius along a radial direction chosen so its unit tangent aligns with the incoming velocity. This prevents zero-length normalization and unbounded radius ratios while retaining the tap's intended rotation direction (ADR-005). There is no free-flight boundary response yet. Bouncer physics remains unimplemented; its required return-speed multiplier is `1.1x`.
+Anchors closer than `12` logical units are moved onto a `12`-unit effective radius along a radial direction chosen so its unit tangent aligns with the incoming velocity. This prevents zero-length normalization and unbounded radius ratios while retaining the tap's intended rotation direction (ADR-005). Each fixed step is subdivided so estimated orb travel is at most `6` logical units, capped at eight collision substeps. The orb reflects elastically inside `(24, 84)` through `(366, 780)`; speed magnitude is preserved. A boundary hit while tethered snaps the tether and continues in free flight.
 
 ## Collision and outcome handling
 
@@ -56,16 +56,16 @@ Each physics step retains the orb's starting and ending center. Target contact c
 
 Spike hazards are triangles whose three vertices exactly match the rendered geometry. Contact succeeds if either swept endpoint is inside the triangle or if the swept center segment comes within one orb radius of any triangle edge. Segment intersection and endpoint-to-segment distances provide the edge-capsule test. A spike hit enters `GAME_OVER`; clearing the final target enters `VICTORY`. If both could occur during one fixed step, the hazard is resolved first (ADR-007).
 
-Terminal transitions clear any active anchor and tether and freeze physics. A new press resets the current failed level or advances after victory. Outer boundaries and bouncer collision are still unimplemented.
+Terminal transitions clear any active anchor and tether and freeze physics. A new press resets the current failed level or advances after victory. Bouncer and logical-boundary impacts both force an active tether into free flight so reflected velocity is not overwritten by analytic orbit motion.
 
 ## Canonical design-token baseline
 
-No token is used in code yet. Required values for the rendering increment are:
+The rendering pass uses the following canonical token values:
 
 | Token | Required value | Implemented use |
 | --- | --- | --- |
 | `color-bg` | `#111215` | Page bleed and canvas clear color |
-| `color-canvas-subtle` | `#1A1C21` | Logical playfield scaffold border |
+| `color-canvas-subtle` | `#1A1C21` | Logical playfield boundary and structural marks |
 | `color-orb` | `#F4F2EC` | Solid kinetic orb fill |
 | `color-tether` | `#E87A5D` | Tether line and anchor pin |
 | `color-target-idle` | `#2D3139` | Concentric target rings |
@@ -128,6 +128,12 @@ Runtime data includes current state and level, tethers remaining, score streak, 
 ## Canonical scaling baseline
 
 The runtime uses a fixed `390 x 844` logical coordinate system. It measures the safe content stage, computes `min(availableWidth / 390, availableHeight / 844)`, and centers the resulting CSS-sized canvas. Its backing-store dimensions equal the displayed dimensions multiplied by the uncapped `window.devicePixelRatio`; drawing transforms logical units by `scale * devicePixelRatio`. A `ResizeObserver`, window resize listener, and `visualViewport` resize listener keep metrics current. The page bleeds `#111215` across the viewport and applies top/bottom safe-area padding with a `16px` minimum plus native left/right safe-area insets.
+
+## Verification baseline
+
+The final automated harness checks viewport/scaling behavior at `320 x 568 @2x` (iPhone SE), `390 x 844 @3x`, `360 x 800 @3x` (20:9), and `412 x 915 @3.5x`; available stage height accounts for the shell's vertical safe padding. Every case verifies CSS fit, backing-store dimensions, and center-pointer conversion. It also generates Levels 01-120, verifies exact boundary speed preservation, and confirms a simulated one-second stall advances no more than the `0.1s` frame clamp.
+
+A stubbed Canvas run of 6,000 combined update/render steps completed in about `1.01s` on the development host. This establishes comfortable headroom for a 60fps frame budget in that environment, but is not a substitute for the physical-device touch/audio/visual smoke test retained in `TODO.md`.
 
 ## Deviations from PRD
 
