@@ -95,3 +95,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Use the pseudocode's 4-5 tethers; enforce the tier table's 6+ promise; add two to the formula; expose incomplete levels after 05; stop progression; cycle the implemented tier. |
 | Rationale | The named progression table is the clearest player-facing difficulty contract and explicitly says `6+`. Cycling keeps the intermediate build runnable without pretending later mechanics exist. |
 | Consequences | Tether allowance differs from the PRD sample pseudocode for Levels 01-05. The progression cycle is temporary and must be removed in the Centrifugal Cuts commit. |
+
+## ADR-010 — Lazily create and resume one shared Web Audio context
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Expose one global assetless sound facade, create its `AudioContext` and master gain only from the first primary pointer gesture, and make every cue a short-lived node graph. |
+| Options considered | Create context during page load; create one context per cue; lazy shared context; omit audio when direct-file launched. |
+| Rationale | Mobile autoplay policies commonly suspend contexts created outside a gesture. A lazy shared context satisfies that requirement, avoids repeated context allocation, and still works when `index.html` is opened directly. |
+| Consequences | No sound can occur before the first gesture. Web Audio creation/resume failures intentionally degrade to silence; gameplay remains unaffected. Random noise timbre is not seed-deterministic because it does not affect state. |

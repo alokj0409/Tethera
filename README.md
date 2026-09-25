@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Deterministic Levels 01-05 are playable; procedural audio is next.** Each Linear Orbits level is generated from its level index with Mulberry32 and 70-unit Bridson Poisson-disc spacing, uses only static target cores, and grants at least six tethers.
+**Procedural audio is wired into the playable core; kinetic animation and impact juice are next.** `audio.js` lazily synthesizes snap, pentatonic chime, shatter, and failure cues after the first user gesture, with no downloaded audio or runtime dependency.
 
 ## Run locally
 
@@ -29,6 +29,7 @@ Tethera/
 |-- PRD.md         Canonical product requirements
 |-- index.html     Full-viewport, safe-area-aware application shell
 |-- game.js        Canvas sizing, logical scaling, and current game runtime
+|-- audio.js       Lazy, assetless Web Audio synthesis for gameplay cues
 |-- README.md      Project overview, run instructions, and implementation status
 |-- SPECS.md       Living technical specification of implemented behavior
 |-- DECISIONS.md   Append-only architecture decision log
@@ -37,7 +38,7 @@ Tethera/
 `-- TODO.md        Remaining requirements, known issues, and open judgments
 ```
 
-The remaining planned runtime file is `audio.js`; it will be added with the procedural-audio checkpoint.
+All three required runtime files are present; later checkpoints extend `game.js` without adding a build system or dependency layer.
 
 ## Source of truth
 

@@ -306,6 +306,10 @@
     return runtime.targets.some((target) => target.active);
   }
 
+  function playSound(method, ...args) {
+    window.TetheraAudio?.[method]?.(...args);
+  }
+
   function createTether(pointerAnchor) {
     let anchor = { ...pointerAnchor };
     let radialX = runtime.orb.pos.x - anchor.x;
@@ -462,6 +466,11 @@
     runtime.activePointerId = null;
     runtime.tether = null;
     transitionTo(state);
+    if (state === GAME_STATE.GAME_OVER) {
+      playSound("playFail");
+    } else if (state === GAME_STATE.VICTORY) {
+      playSound("playChime", runtime.scoreStreak + 2);
+    }
   }
 
   function resolveCollisions(start, end) {
@@ -482,6 +491,8 @@
       ) {
         target.active = false;
         runtime.scoreStreak += 1;
+        playSound("playShatter");
+        playSound("playChime", runtime.scoreStreak - 1);
       }
     }
 
@@ -528,6 +539,7 @@
     }
 
     event.preventDefault();
+    window.TetheraAudio?.unlock();
     const pointerPoint = logicalPointFromPointer(event);
 
     if (
@@ -584,9 +596,10 @@
     runtime.activePointerId = null;
     runtime.tether = null;
     transitionTo(GAME_STATE.FREE_FLIGHT);
+    playSound("playSnap");
 
     if (runtime.tethersRemaining === 0 && hasActiveTargets()) {
-      transitionTo(GAME_STATE.GAME_OVER);
+      enterTerminalState(GAME_STATE.GAME_OVER);
     }
 
     renderScene();

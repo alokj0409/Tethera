@@ -6,6 +6,14 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Procedural audio
+
+### Added
+
+- Added lazy, dependency-free Web Audio synthesis for snap, pentatonic chime, shatter, and fail cues.
+- Added a shared master gain and silent fallback when Web Audio is unavailable.
+- Wired sound to tether release, target collection, victory, spike impact, and tether-limit failure.
+
 ## [2026-09-25] — Linear Orbits generation
 
 ### Added

@@ -1,9 +1,20 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: deterministic Linear Orbits generation
+Implementation checkpoint: procedural audio
 
-This file describes the repository as implemented, not merely intended. The app currently provides the responsive renderer, state/input loop, dynamic motion, swept collision, win/loss flow, and deterministic generation for Levels 01-05. Sound and later tiers remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides the responsive renderer, state/input loop, dynamic motion, swept collision, win/loss flow, deterministic Levels 01-05, and procedural gameplay sound. Animation juice and later tiers remain pending.
+
+## Audio implementation
+
+`audio.js` creates its `AudioContext` and master gain lazily on the first primary pointer gesture, then resumes a suspended context when later cues are scheduled. The master gain is `0.58`; unsupported Web Audio environments degrade to silent play without blocking gameplay.
+
+- `playSnap`: a 45ms exponentially decaying white-noise transient through a 1200Hz high-pass filter, fired on tether release.
+- `playChime`: a 360ms sine oscillator selected from `[261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33]`, with an 8ms attack to `0.25` and exponential decay, fired for target sequence notes and victory.
+- `playShatter`: a 130ms decaying noise burst through a 2400Hz band-pass filter at Q `1.8`, layered on every target collection.
+- `playFail`: a triangle oscillator falling from 164.81Hz to 73.42Hz over 480ms with a 500ms envelope, fired for spike and tether-limit failure.
+
+All nodes are short-lived and connect through the shared master. Noise buffers are created in memory at event time; there are no audio files.
 
 ## Runtime and delivery
 

@@ -4,16 +4,15 @@ Last updated: 2026-09-25
 
 This list tracks product requirements not present in the checked-in implementation. Items are ordered by the requested delivery sequence; completed work is removed from the active list and reflected in `CHANGELOG.md`.
 
-## Next increment — Procedural audio
+## Next increment — Animation and impact juice
 
-- Add dependency-free `audio.js` with lazy Web Audio context creation.
-- Synthesize snap, chime, shatter, and fail cues without external assets.
-- Wire cues to tether engagement/release, target collection, victory, and failure while respecting browser gesture requirements.
+- Add tether snap spring damping with `k = 320` and `d = 24`.
+- Add four-facet target shatter particles fading over `240ms` and `2.5px`/`60ms` impact recoil.
+- Add tether-width pulse from `1.0px` to `2.2px` above `12 rad/s`.
 - Update all living documents, commit this increment alone, and push `main`.
 
 ## Remaining build order
 
-- Add damped tether motion (`k = 320`, `d = 24`), four-facet `240ms` shatter particles, `2.5px`/`60ms` recoil, and high-angular-speed tether pulse.
 - Implement Tier 06-12 moving targets in a dedicated checkpoint.
 - Implement Tier 13-20 bouncers in a dedicated checkpoint.
 - Implement Tier 21-35 spike hazards in a dedicated checkpoint.
