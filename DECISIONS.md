@@ -75,3 +75,23 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Endpoint-only overlap; swept point tests; adaptive sub-stepping; final-target victory before hazards; hazard before target. |
 | Rationale | Swept tests prevent ordinary straight-line tunneling without increasing the global simulation rate. Matching the visual triangle prevents invisible collision margins. A lethal obstacle should not be negated by simultaneously touching the final target. |
 | Consequences | Extremely high angular velocity can trace a curved arc that differs materially from its one-step chord; adaptive collision sub-stepping remains a final performance/robustness task. Targets touched on a hazard-loss step remain active because hazard evaluation short-circuits the step. |
+
+## ADR-008 — Use Mulberry32 with active-list Bridson sampling
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Seed Mulberry32 with unsigned `Math.imul(levelIndex, 49297)` and generate target centers with grid-accelerated Bridson Poisson-disc sampling using 30 candidates per active point. Reserve a 110-unit radius around the fixed orb spawn. |
+| Options considered | SplitMix32; Mulberry32; rejection-only dart throwing; Bridson active-list sampling; pre-authored layouts. |
+| Rationale | Mulberry32 is compact and deterministic in JavaScript's 32-bit integer operations. Bridson sampling directly enforces the PRD 70-unit minimum and is deterministic when every random choice comes from the seeded stream. Reserving the spawn prevents an immediate target overlap without hand-editing seeds. |
+| Consequences | Changing candidate order, attempt count, or random consumption changes every layout and launch velocity. The sampler throws rather than silently overlap if it cannot satisfy the requested count. |
+
+## ADR-009 — Favor the Linear Orbits `6+` tier rule over the sample formula
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Set Tier 01-05 allowance to `max(6, pseudocodeFormula)` and cycle Level 05 victory back to Level 01 until Tier 06 is implemented. |
+| Options considered | Use the pseudocode's 4-5 tethers; enforce the tier table's 6+ promise; add two to the formula; expose incomplete levels after 05; stop progression; cycle the implemented tier. |
+| Rationale | The named progression table is the clearest player-facing difficulty contract and explicitly says `6+`. Cycling keeps the intermediate build runnable without pretending later mechanics exist. |
+| Consequences | Tether allowance differs from the PRD sample pseudocode for Levels 01-05. The progression cycle is temporary and must be removed in the Centrifugal Cuts commit. |

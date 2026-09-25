@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Linear Orbits generation
+
+### Added
+
+- Added deterministic Mulberry32 level seeds derived from `levelIndex * 49297`.
+- Added grid-accelerated Bridson Poisson-disc target placement with 70-unit separation and an orb-spawn exclusion radius.
+- Added seeded launch direction/speed and deterministic diagnostic level snapshots.
+
+### Changed
+
+- Replaced fixed placeholder entities with generated static-target layouts for Levels 01-05.
+- Enforced the Linear Orbits tier's minimum allowance of six tethers and temporarily looped Level 05 victory to Level 01.
+
 ## [2026-09-25] — Collision and outcomes
 
 ### Added

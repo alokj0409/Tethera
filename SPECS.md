@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: collision and outcomes
+Implementation checkpoint: deterministic Linear Orbits generation
 
-This file describes the repository as implemented, not merely intended. The app currently provides the responsive renderer, state/input loop, dynamic motion, swept target/spike collision, and win/loss flow. Level generation and sound remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides the responsive renderer, state/input loop, dynamic motion, swept collision, win/loss flow, and deterministic generation for Levels 01-05. Sound and later tiers remain pending.
 
 ## Runtime and delivery
 
@@ -57,20 +57,22 @@ Typography uses a system monospace fallback at `11px` to `13px`, uppercase, with
 
 The HUD shows zero-padded level number, cleared/total target count, and remaining tethers. A bottom-right circular-arrow icon resets the current level through a circular logical-space hit target centered at `(350, 794)` with radius `18`.
 
-## Canonical level-generation baseline
+## Level generation
 
-Level generation is not implemented. PRD Section 4 requires:
+Levels 01-05 use these implemented parameters:
 
-- Seed input: `levelIndex * 49297`, fed to a deterministic PRNG such as Mulberry32 or SplitMix32.
+- Seed input: unsigned `Math.imul(levelIndex, 49297)`, fed to Mulberry32.
 - Logical placement padding: `60` units horizontally and a `100`-unit header offset.
 - Play height: logical height minus `180` units.
 - Target count: `min(2 + floor(levelIndex / 4), 7)`.
 - Hazard count: `levelIndex > 10 ? min(floor((levelIndex - 10) / 3), 6) : 0`.
-- Tether allowance: `max(3, targetCount + 2 - floor(levelIndex / 25))`.
+- Tether allowance: `max(6, max(3, targetCount + 2 - floor(levelIndex / 25)))` for Levels 01-05.
 - Poisson-disc minimum separation: `70` logical units.
-- Target radius: `14`; hazard radius: `12`.
+- Target radius: `14`; generated hazards, bouncers, and gravity poles: none.
 
-The first generator increment is limited to Levels 01-05 and must not enable mechanics from later tiers.
+The generator uses Bridson active-list Poisson-disc sampling with a grid cell size of `70 / sqrt(2)` and up to 30 annulus candidates per active point. Samples must also stay at least `110` logical units from the fixed orb spawn `(195, 690)`. The orb launches at a seeded speed in `[82, 100)` and a seeded upward angle from `-0.58pi` through `-0.92pi`.
+
+The PRD tier table promises `6+` tethers for Linear Orbits, while its sample formula yields 4 or 5 for these levels. The implemented minimum of 6 follows the tier table; this is the only current numeric deviation from the pseudocode (ADR-009). Until Tier 06 is implemented, victory after Level 05 cycles to Level 01 rather than exposing an incomplete tier.
 
 ## State machine and input
 
@@ -92,4 +94,6 @@ The runtime uses a fixed `390 x 844` logical coordinate system. It measures the 
 
 ## Deviations from PRD
 
-None. Safe-area padding is applied outside the logical game surface, so the aspect-fit calculation uses only unobstructed content space.
+- Linear Orbits enforces a six-tether floor instead of the PRD pseudocode's lower result, resolving the conflict in favor of the explicit tier table.
+- Progression temporarily cycles from Level 05 to Level 01 because no later tier is implemented yet.
+- Safe-area padding is applied outside the logical game surface, so the aspect-fit calculation uses only unobstructed content space.

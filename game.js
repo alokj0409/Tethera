@@ -7,6 +7,13 @@
   const MAX_FRAME_DELTA = 0.1;
   const MIN_TETHER_RADIUS = 12;
   const VECTOR_EPSILON = 1e-6;
+  const LEVEL_SEED_MULTIPLIER = 49297;
+  const POISSON_MIN_DISTANCE = 70;
+  const MAX_IMPLEMENTED_LEVEL = 5;
+  const PLAY_PADDING = 60;
+  const PLAY_TOP = 100;
+  const PLAY_HEIGHT = LOGICAL_HEIGHT - 180;
+  const ORB_START = Object.freeze({ x: LOGICAL_WIDTH / 2, y: 690 });
 
   const COLORS = Object.freeze({
     background: "#111215",
@@ -67,6 +74,7 @@
   const runtime = {
     currentState: GAME_STATE.AWAITING_INPUT,
     currentLevelIndex: 1,
+    levelSeed: LEVEL_SEED_MULTIPLIER,
     tethersRemaining: 6,
     scoreStreak: 0,
     orb: {
@@ -83,33 +91,194 @@
     particles: [],
   };
 
-  function createPlaceholderTargets() {
-    return [
-      { id: 1, x: 108, y: 278, radius: 14, active: true },
-      { id: 2, x: 282, y: 336, radius: 14, active: true },
-      { id: 3, x: 204, y: 184, radius: 14, active: true },
-    ];
+  function createMulberry32(seed) {
+    let state = seed >>> 0;
+    return function random() {
+      state = (state + 0x6d2b79f5) >>> 0;
+      let value = state;
+      value = Math.imul(value ^ (value >>> 15), value | 1);
+      value ^= value + Math.imul(value ^ (value >>> 7), value | 61);
+      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+    };
   }
 
-  function createPlaceholderHazards() {
-    return [{ id: 1, x: 304, y: 528, radius: 17, rotation: -0.3 }];
+  function poissonDiscSampling(
+    width,
+    height,
+    minimumDistance,
+    random,
+    desiredCount,
+    acceptsPoint = () => true,
+  ) {
+    const cellSize = minimumDistance / Math.SQRT2;
+    const columns = Math.ceil(width / cellSize);
+    const rows = Math.ceil(height / cellSize);
+    const grid = new Array(columns * rows).fill(null);
+    const samples = [];
+    const active = [];
+
+    function gridIndex(point) {
+      return (
+        Math.floor(point.y / cellSize) * columns +
+        Math.floor(point.x / cellSize)
+      );
+    }
+
+    function insert(point) {
+      samples.push(point);
+      active.push(point);
+      grid[gridIndex(point)] = point;
+    }
+
+    function isValid(point) {
+      if (
+        point.x < 0 ||
+        point.x >= width ||
+        point.y < 0 ||
+        point.y >= height ||
+        !acceptsPoint(point)
+      ) {
+        return false;
+      }
+
+      const column = Math.floor(point.x / cellSize);
+      const row = Math.floor(point.y / cellSize);
+      for (let y = Math.max(0, row - 2); y <= Math.min(rows - 1, row + 2); y += 1) {
+        for (
+          let x = Math.max(0, column - 2);
+          x <= Math.min(columns - 1, column + 2);
+          x += 1
+        ) {
+          const neighbor = grid[y * columns + x];
+          if (
+            neighbor &&
+            Math.hypot(point.x - neighbor.x, point.y - neighbor.y) <
+              minimumDistance
+          ) {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    for (let attempt = 0; attempt < 100 && samples.length === 0; attempt += 1) {
+      const firstPoint = { x: random() * width, y: random() * height };
+      if (acceptsPoint(firstPoint)) {
+        insert(firstPoint);
+      }
+    }
+
+    while (active.length > 0 && samples.length < desiredCount) {
+      const activeIndex = Math.floor(random() * active.length);
+      const origin = active[activeIndex];
+      let placed = false;
+
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const angle = random() * Math.PI * 2;
+        const distance = minimumDistance * (1 + random());
+        const candidate = {
+          x: origin.x + Math.cos(angle) * distance,
+          y: origin.y + Math.sin(angle) * distance,
+        };
+
+        if (isValid(candidate)) {
+          insert(candidate);
+          placed = true;
+          break;
+        }
+      }
+
+      if (!placed) {
+        active.splice(activeIndex, 1);
+      }
+    }
+
+    if (samples.length < desiredCount) {
+      throw new Error(
+        `Poisson sampler produced ${samples.length}/${desiredCount} points.`,
+      );
+    }
+
+    return samples;
+  }
+
+  function generateLinearOrbitLevel(levelIndex) {
+    if (
+      !Number.isInteger(levelIndex) ||
+      levelIndex < 1 ||
+      levelIndex > MAX_IMPLEMENTED_LEVEL
+    ) {
+      throw new RangeError("Linear Orbits generation supports Levels 1 through 5.");
+    }
+
+    const seed = Math.imul(levelIndex, LEVEL_SEED_MULTIPLIER) >>> 0;
+    const random = createMulberry32(seed);
+    const targetCount = Math.min(2 + Math.floor(levelIndex / 4), 7);
+    const formulaTethers = Math.max(
+      3,
+      targetCount + 2 - Math.floor(levelIndex / 25),
+    );
+    const maxTethers = Math.max(6, formulaTethers);
+    const playWidth = LOGICAL_WIDTH - PLAY_PADDING * 2;
+    const acceptsPoint = (point) =>
+      Math.hypot(
+        point.x + PLAY_PADDING - ORB_START.x,
+        point.y + PLAY_TOP - ORB_START.y,
+      ) >= 110;
+    const points = poissonDiscSampling(
+      playWidth,
+      PLAY_HEIGHT,
+      POISSON_MIN_DISTANCE,
+      random,
+      targetCount,
+      acceptsPoint,
+    );
+    const launchAngle = -Math.PI * (0.58 + random() * 0.34);
+    const launchSpeed = 82 + random() * 18;
+
+    return {
+      levelNumber: levelIndex,
+      seed,
+      maxTethers,
+      orb: {
+        x: ORB_START.x,
+        y: ORB_START.y,
+        vx: Math.cos(launchAngle) * launchSpeed,
+        vy: Math.sin(launchAngle) * launchSpeed,
+      },
+      targets: points.map((point, index) => ({
+        id: index + 1,
+        x: point.x + PLAY_PADDING,
+        y: point.y + PLAY_TOP,
+        radius: 14,
+        active: true,
+      })),
+      hazards: [],
+      bouncers: [],
+      gravityPoles: [],
+    };
   }
 
   function initializeLevel(levelIndex = runtime.currentLevelIndex) {
+    const playableLevelIndex =
+      ((levelIndex - 1) % MAX_IMPLEMENTED_LEVEL) + 1;
+    const level = generateLinearOrbitLevel(playableLevelIndex);
     runtime.currentState = GAME_STATE.AWAITING_INPUT;
-    runtime.currentLevelIndex = levelIndex;
-    runtime.tethersRemaining = 6;
+    runtime.currentLevelIndex = level.levelNumber;
+    runtime.levelSeed = level.seed;
+    runtime.tethersRemaining = level.maxTethers;
     runtime.scoreStreak = 0;
-    runtime.orb.pos.x = LOGICAL_WIDTH / 2;
-    runtime.orb.pos.y = 536;
-    runtime.orb.vel.x = 92;
-    runtime.orb.vel.y = -18;
+    runtime.orb.pos.x = level.orb.x;
+    runtime.orb.pos.y = level.orb.y;
+    runtime.orb.vel.x = level.orb.vx;
+    runtime.orb.vel.y = level.orb.vy;
     runtime.activeAnchor = null;
     runtime.activePointerId = null;
     runtime.tether = null;
     runtime.lastTetherRadius = null;
-    runtime.targets = createPlaceholderTargets();
-    runtime.hazards = createPlaceholderHazards();
+    runtime.targets = level.targets;
+    runtime.hazards = level.hazards;
     runtime.particles = [];
     renderScene();
   }
@@ -723,6 +892,8 @@
   window.TetheraGame = Object.freeze({
     states: GAME_STATE,
     getState: () => structuredClone(runtime),
+    generateLevel: (levelIndex) =>
+      structuredClone(generateLinearOrbitLevel(levelIndex)),
     resetLevel: () => initializeLevel(runtime.currentLevelIndex),
     stepForDiagnostics: (seconds = FIXED_TIME_STEP) => {
       updatePhysics(seconds);

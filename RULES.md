@@ -1,9 +1,9 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: collision and outcomes
+Implementation checkpoint: deterministic Linear Orbits generation
 
-This file is the definitive rules reference for the checked-in game. State transitions, input, tether accounting, orb/tether motion, target contact, spike failure, and victory are active; generated progression and later-tier mechanics remain canonical requirements until their implementation checkpoints land.
+This file is the definitive rules reference for the checked-in game. The complete core loop and generated Levels 01-05 are active; later-tier mechanics remain canonical requirements until their implementation checkpoints land.
 
 ## Objective
 
@@ -66,6 +66,8 @@ Pending details above are not implemented gameplay and are tracked in `TODO.md` 
 
 Mechanics remain available after their introduction unless a generated level intentionally omits them. This progression interpretation will be validated when later tiers are implemented.
 
+Only Levels 01-05 are currently generated. They contain `min(2 + floor(level / 4), 7)` static targets with 14-unit radii, no hazards, and at least six tethers. Target centers have a deterministic minimum separation of 70 logical units and remain at least 110 units from the orb's initial center.
+
 ## Progression
 
-Victory advances to the next numerical level. Failure resets the current stage. Levels must be deterministic for the same level index and logical play bounds.
+Victory advances to the next numerical level and failure resets the current stage. At the present implementation boundary, victory on Level 05 cycles to Level 01; this temporary loop will be removed when Tier 06 lands. Restarting or revisiting a level reproduces its target positions and launch velocity exactly.

@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Targets, lethal spikes, and level outcomes are live; deterministic Tier 01-05 generation is next.** Swept collision tests collect target cores without ordinary tunneling, fail on the visible triangle edges, and activate the victory/game-over flow while retaining direct restart and next-level input.
+**Deterministic Levels 01-05 are playable; procedural audio is next.** Each Linear Orbits level is generated from its level index with Mulberry32 and 70-unit Bridson Poisson-disc spacing, uses only static target cores, and grants at least six tethers.
 
 ## Run locally
 
@@ -20,7 +20,7 @@ No package manager, dependency installation, bundler, or external asset download
 - Press the circular-arrow control at bottom right to restart the current level.
 - Clear every target before the allotted tether count reaches zero.
 
-The controls, physics, target collection, spike failure, victory, and reset loop are interactive. Layouts are still fixed placeholders until deterministic generation lands.
+The controls, physics, target collection, victory, and reset loop are interactive across the five generated Linear Orbits levels. After Level 05, the current milestone cycles to Level 01 until later tier commits extend progression; spike collision remains implemented but no spikes are generated in this tier.
 
 ## Project structure
 
