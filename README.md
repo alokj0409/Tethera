@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Complete: every PRD progression tier, presentation system, audio cue, and final runtime hardening pass is implemented.** The build has automated coverage across iPhone SE, 390-wide, tall 20:9, and large Android viewport/DPR combinations; deterministic generation continues without a level cap.
+**Complete: every PRD progression tier, presentation system, audio cue, and final runtime hardening pass is implemented.** Restart now reliably restores a moving, deterministically seeded orb after every failure path; the build has automated coverage across iPhone SE, 390-wide, tall 20:9, and large Android viewport/DPR combinations.
 
 ## Run locally
 

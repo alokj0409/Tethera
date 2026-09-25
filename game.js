@@ -489,7 +489,13 @@
       return;
     }
 
-    startTetherSnap();
+    runtime.tetherSnap = {
+      anchor: { ...runtime.activeAnchor },
+      end: { x: runtime.orb.pos.x, y: runtime.orb.pos.y },
+      displacement: 1,
+      velocity: 0,
+      age: 0,
+    };
   }
 
   function createTether(pointerAnchor) {
@@ -1197,13 +1203,7 @@
     }
 
     event.preventDefault();
-    runtime.tetherSnap = {
-      anchor: { ...runtime.activeAnchor },
-      end: { x: runtime.orb.pos.x, y: runtime.orb.pos.y },
-      displacement: 1,
-      velocity: 0,
-      age: 0,
-    };
+    startTetherSnap();
     runtime.lastTetherRadius = runtime.tether?.radius ?? runtime.lastTetherRadius;
     runtime.activeAnchor = null;
     runtime.activePointerId = null;

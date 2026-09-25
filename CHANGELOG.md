@@ -6,6 +6,13 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Restart recovery
+
+### Fixed
+
+- Fixed forced tether breaks recursively calling the snap helper until the animation loop stopped.
+- Restored moving-orb simulation after restarting from boundary, bouncer, or wormhole failure paths.
+
 ## [2026-09-25] — Final QA and runtime hardening
 
 ### Added
