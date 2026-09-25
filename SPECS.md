@@ -1,20 +1,20 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: documentation baseline (no runtime code)
+Implementation checkpoint: responsive canvas scaffold
 
-This file describes the repository as implemented, not merely intended. At this checkpoint there is no playable application, physics loop, rendering layer, level generator, or sound system. The tables below preserve the canonical PRD baseline against which future commits will report their implemented values and deviations.
+This file describes the repository as implemented, not merely intended. The app currently provides a responsive Canvas 2D shell but no gameplay, physics loop, level generator, or sound system. The tables below distinguish active implementation from the canonical PRD baseline for future checkpoints.
 
 ## Runtime and delivery
 
 | Area | Current implementation |
 | --- | --- |
-| Application files | Not implemented; `index.html`, `game.js`, and `audio.js` are pending. |
+| Application files | `index.html` and `game.js` implement the canvas shell; `audio.js` is pending. |
 | Build step | None planned or permitted. |
 | Runtime dependencies | None planned or permitted. |
 | Assets | No external image, audio, or font assets planned or permitted. |
-| Rendering | Canvas 2D selected in ADR-001; not implemented. |
-| Browser launch | Direct-file and static-server execution are required but not yet available. |
+| Rendering | One Canvas 2D surface, selected in ADR-001. The current pass draws the background, logical boundary, and scaffold label. |
+| Browser launch | Runs by opening `index.html` directly or through a static server. |
 
 ## Canonical physics baseline
 
@@ -34,14 +34,14 @@ No token is used in code yet. Required values for the rendering increment are:
 
 | Token | Required value | Implemented use |
 | --- | --- | --- |
-| `color-bg` | `#111215` | Not implemented |
-| `color-canvas-subtle` | `#1A1C21` | Not implemented |
+| `color-bg` | `#111215` | Page bleed and canvas clear color |
+| `color-canvas-subtle` | `#1A1C21` | Logical playfield scaffold border |
 | `color-orb` | `#F4F2EC` | Not implemented |
 | `color-tether` | `#E87A5D` | Not implemented |
 | `color-target-idle` | `#2D3139` | Not implemented |
 | `color-target-active` | `#F0C05A` | Not implemented |
 | `color-hazard` | `#D94E41` | Not implemented |
-| `color-ui-text` | `#8E929C` | Not implemented |
+| `color-ui-text` | `#8E929C` | Scaffold label |
 
 Typography must use a system monospace fallback at `11px` to `14px`, uppercase, with `0.12em` tracking. No font asset is present.
 
@@ -77,8 +77,8 @@ Required runtime data includes the current state and level, tethers remaining, s
 
 ## Canonical scaling baseline
 
-Viewport handling is not implemented. The required model is a fixed `390 x 844` logical coordinate system, uniformly aspect-fit with `min(viewportWidth / 390, viewportHeight / 844)`, centered within a full-viewport `#111215` bleed. The canvas must be calibrated to `window.devicePixelRatio`, and page layout must respect `env(safe-area-inset-top)` and `env(safe-area-inset-bottom)` with a `16px` minimum.
+The runtime uses a fixed `390 x 844` logical coordinate system. It measures the safe content stage, computes `min(availableWidth / 390, availableHeight / 844)`, and centers the resulting CSS-sized canvas. Its backing-store dimensions equal the displayed dimensions multiplied by the uncapped `window.devicePixelRatio`; drawing transforms logical units by `scale * devicePixelRatio`. A `ResizeObserver`, window resize listener, and `visualViewport` resize listener keep metrics current. The page bleeds `#111215` across the viewport and applies top/bottom safe-area padding with a `16px` minimum plus native left/right safe-area insets.
 
 ## Deviations from PRD
 
-None. No product behavior has been implemented yet.
+None. Safe-area padding is applied outside the logical game surface, so the aspect-fit calculation uses only unobstructed content space.

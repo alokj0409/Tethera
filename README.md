@@ -4,11 +4,11 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Documentation baseline complete; the playable canvas scaffold is the next increment.** The repository currently contains the canonical product requirements and the living project documentation, but no executable game files yet.
+**Responsive canvas scaffold complete; core state and input are next.** The app now opens to a DPR-sharp, safe-area-aware `390 x 844` logical canvas that aspect-fits and letterboxes on the available viewport.
 
 ## Run locally
 
-There is no runnable build in this initial documentation checkpoint. Once the canvas scaffold lands, the game will be build-step-free and will run either by opening `index.html` directly or by serving this directory with any static file server.
+Open `index.html` directly in a modern browser, or serve this directory with any static file server and open its root URL. The current scaffold displays the TETHERA logical playfield; gameplay is added in later checkpoints.
 
 No package manager, dependency installation, bundler, or external asset download will be required.
 
@@ -26,6 +26,8 @@ These controls describe the canonical game design; they are not interactive unti
 ```text
 Tethera/
 |-- PRD.md         Canonical product requirements
+|-- index.html     Full-viewport, safe-area-aware application shell
+|-- game.js        Canvas sizing, logical scaling, and current game runtime
 |-- README.md      Project overview, run instructions, and implementation status
 |-- SPECS.md       Living technical specification of implemented behavior
 |-- DECISIONS.md   Append-only architecture decision log
@@ -34,7 +36,7 @@ Tethera/
 `-- TODO.md        Remaining requirements, known issues, and open judgments
 ```
 
-The planned runtime files are `index.html`, `game.js`, and `audio.js`. They will be added in independently runnable checkpoints.
+The remaining planned runtime file is `audio.js`; it will be added with the procedural-audio checkpoint.
 
 ## Source of truth
 

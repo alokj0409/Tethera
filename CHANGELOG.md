@@ -6,6 +6,14 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Responsive canvas scaffold
+
+### Added
+
+- Added a build-step-free `index.html` application shell with viewport locking and safe-area integration.
+- Added a DPR-calibrated Canvas 2D surface using the fixed `390 x 844` logical coordinate system and centered aspect-fit letterboxing.
+- Added resize observation and viewport-resize handling so the logical surface remains sharp and centered across viewport changes.
+
 ## [2026-09-25] — Documentation baseline
 
 ### Added

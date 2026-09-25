@@ -4,16 +4,15 @@ Last updated: 2026-09-25
 
 This list tracks product requirements not present in the checked-in implementation. Items are ordered by the requested delivery sequence; completed work is removed from the active list and reflected in `CHANGELOG.md`.
 
-## Next increment — Canvas scaffold
+## Next increment — Core state and input
 
-- Add `index.html` with viewport locking, `viewport-fit=cover`, a zero-margin full-viewport host, and safe-area padding.
-- Add `game.js` with a `390 x 844` logical canvas, DPR-calibrated backing store, uniform aspect-fit scaling, centered letterboxing, and full-viewport background bleed.
-- Verify direct-file execution and static-server execution with no dependencies or build step.
+- Add the five canonical runtime states and explicit transition handling.
+- Map pointer coordinates from the displayed canvas into logical coordinates.
+- Implement press-to-anchor, hold-to-orbit-state, and release-to-free-flight state changes with placeholder rendering.
 - Update all living documents, commit this increment alone, and push `main`.
 
 ## Remaining build order
 
-- Implement the five-state core state machine and pointer input with placeholder rendering.
 - Implement tether dynamics: radial vector, tangent projection, momentum preservation, and `0.65` short-radius whip scaling.
 - Implement token-driven drawing for the orb, anchor, tether, target, hazard, and HUD.
 - Implement target circle collision, hazard/bouncer line contact, and victory/failure transitions.
@@ -30,7 +29,7 @@ This list tracks product requirements not present in the checked-in implementati
 
 ## Known bugs
 
-- No runnable application exists in this documentation-only checkpoint.
+- No confirmed defects in the canvas-only checkpoint; gameplay is intentionally not present yet.
 
 ## Open judgments
 
