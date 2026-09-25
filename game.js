@@ -14,6 +14,12 @@
   const PLAY_TOP = 100;
   const PLAY_HEIGHT = LOGICAL_HEIGHT - 180;
   const ORB_START = Object.freeze({ x: LOGICAL_WIDTH / 2, y: 690 });
+  const TETHER_SPRING_K = 320;
+  const TETHER_SPRING_DAMPING = 24;
+  const SHATTER_LIFETIME = 0.24;
+  const RECOIL_DISTANCE = 2.5;
+  const RECOIL_DURATION = 0.06;
+  const TETHER_PULSE_THRESHOLD = 12;
 
   const COLORS = Object.freeze({
     background: "#111215",
@@ -89,6 +95,9 @@
     targets: [],
     hazards: [],
     particles: [],
+    tetherSnap: null,
+    recoil: null,
+    elapsedTime: 0,
   };
 
   function createMulberry32(seed) {
@@ -280,6 +289,9 @@
     runtime.targets = level.targets;
     runtime.hazards = level.hazards;
     runtime.particles = [];
+    runtime.tetherSnap = null;
+    runtime.recoil = null;
+    runtime.elapsedTime = 0;
     renderScene();
   }
 
@@ -473,6 +485,70 @@
     }
   }
 
+  function spawnShatter(target) {
+    const facetSpeed = 92;
+    for (let index = 0; index < 4; index += 1) {
+      const angle = Math.PI / 4 + index * (Math.PI / 2);
+      runtime.particles.push({
+        x: target.x,
+        y: target.y,
+        vx: Math.cos(angle) * facetSpeed,
+        vy: Math.sin(angle) * facetSpeed,
+        rotation: angle,
+        spin: index % 2 === 0 ? 9 : -9,
+        life: SHATTER_LIFETIME,
+        maxLife: SHATTER_LIFETIME,
+      });
+    }
+
+    const speed = Math.hypot(runtime.orb.vel.x, runtime.orb.vel.y);
+    const impactX = speed > VECTOR_EPSILON ? runtime.orb.vel.x / speed : 1;
+    const impactY = speed > VECTOR_EPSILON ? runtime.orb.vel.y / speed : 0;
+    runtime.recoil = {
+      x: impactX * RECOIL_DISTANCE,
+      y: impactY * RECOIL_DISTANCE,
+      life: RECOIL_DURATION,
+      maxLife: RECOIL_DURATION,
+    };
+  }
+
+  function updateEffects(deltaSeconds) {
+    runtime.elapsedTime += deltaSeconds;
+
+    for (const particle of runtime.particles) {
+      particle.x += particle.vx * deltaSeconds;
+      particle.y += particle.vy * deltaSeconds;
+      particle.rotation += particle.spin * deltaSeconds;
+      particle.life -= deltaSeconds;
+    }
+    runtime.particles = runtime.particles.filter((particle) => particle.life > 0);
+
+    if (runtime.recoil) {
+      runtime.recoil.life -= deltaSeconds;
+      if (runtime.recoil.life <= 0) {
+        runtime.recoil = null;
+      }
+    }
+
+    if (runtime.tetherSnap) {
+      const spring = runtime.tetherSnap;
+      const acceleration =
+        -TETHER_SPRING_K * spring.displacement -
+        TETHER_SPRING_DAMPING * spring.velocity;
+      spring.velocity += acceleration * deltaSeconds;
+      spring.displacement += spring.velocity * deltaSeconds;
+      spring.age += deltaSeconds;
+
+      if (
+        spring.age >= 0.45 ||
+        (Math.abs(spring.displacement) < 0.002 &&
+          Math.abs(spring.velocity) < 0.02)
+      ) {
+        runtime.tetherSnap = null;
+      }
+    }
+  }
+
   function resolveCollisions(start, end) {
     if (runtime.hazards.some((hazard) => sweptOrbHitsHazard(start, end, hazard))) {
       enterTerminalState(GAME_STATE.GAME_OVER);
@@ -491,6 +567,7 @@
       ) {
         target.active = false;
         runtime.scoreStreak += 1;
+        spawnShatter(target);
         playSound("playShatter");
         playSound("playChime", runtime.scoreStreak - 1);
       }
@@ -502,6 +579,8 @@
   }
 
   function updatePhysics(deltaSeconds) {
+    updateEffects(deltaSeconds);
+
     if (
       runtime.currentState === GAME_STATE.VICTORY ||
       runtime.currentState === GAME_STATE.GAME_OVER
@@ -591,6 +670,13 @@
     }
 
     event.preventDefault();
+    runtime.tetherSnap = {
+      anchor: { ...runtime.activeAnchor },
+      end: { x: runtime.orb.pos.x, y: runtime.orb.pos.y },
+      displacement: 1,
+      velocity: 0,
+      age: 0,
+    };
     runtime.lastTetherRadius = runtime.tether?.radius ?? runtime.lastTetherRadius;
     runtime.activeAnchor = null;
     runtime.activePointerId = null;
@@ -737,6 +823,44 @@
     }
   }
 
+  function drawShatterParticles() {
+    for (const particle of runtime.particles) {
+      context.save();
+      context.translate(particle.x, particle.y);
+      context.rotate(particle.rotation);
+      context.globalAlpha = Math.max(0, particle.life / particle.maxLife);
+      context.fillStyle = COLORS.targetActive;
+      context.beginPath();
+      context.moveTo(0, -5);
+      context.lineTo(3.2, 3.5);
+      context.lineTo(-2.4, 2.2);
+      context.closePath();
+      context.fill();
+      context.restore();
+    }
+  }
+
+  function drawTetherSnap() {
+    if (!runtime.tetherSnap) {
+      return;
+    }
+
+    const spring = runtime.tetherSnap;
+    const endX =
+      spring.anchor.x + (spring.end.x - spring.anchor.x) * spring.displacement;
+    const endY =
+      spring.anchor.y + (spring.end.y - spring.anchor.y) * spring.displacement;
+    context.save();
+    context.globalAlpha = Math.min(1, Math.abs(spring.displacement) * 1.5);
+    context.strokeStyle = COLORS.tether;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(spring.anchor.x, spring.anchor.y);
+    context.lineTo(endX, endY);
+    context.stroke();
+    context.restore();
+  }
+
   function drawOrbAndAnchor() {
     if (runtime.tether && runtime.activeAnchor) {
       context.strokeStyle = COLORS.subtle;
@@ -755,7 +879,13 @@
       context.moveTo(runtime.activeAnchor.x, runtime.activeAnchor.y);
       context.lineTo(runtime.orb.pos.x, runtime.orb.pos.y);
       context.strokeStyle = COLORS.tether;
-      context.lineWidth = 1;
+      const angularVelocity = Math.abs(
+        runtime.tether.tangentialSpeed / runtime.tether.radius,
+      );
+      context.lineWidth =
+        angularVelocity > TETHER_PULSE_THRESHOLD
+          ? 1.6 + Math.sin(runtime.elapsedTime * 30) * 0.6
+          : 1;
       context.stroke();
 
       context.fillStyle = COLORS.background;
@@ -830,9 +960,20 @@
     context.fillStyle = COLORS.background;
     context.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
+    if (runtime.recoil) {
+      const recoilProgress = runtime.recoil.life / runtime.recoil.maxLife;
+      const dampedProgress = recoilProgress * recoilProgress;
+      context.translate(
+        runtime.recoil.x * dampedProgress,
+        runtime.recoil.y * dampedProgress,
+      );
+    }
+
     drawGrid();
     drawTargets();
     drawHazards();
+    drawShatterParticles();
+    drawTetherSnap();
     drawOrbAndAnchor();
     drawHud();
     drawRestartControl();

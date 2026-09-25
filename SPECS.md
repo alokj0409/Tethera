@@ -1,9 +1,18 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: procedural audio
+Implementation checkpoint: kinetic animation and impact feedback
 
-This file describes the repository as implemented, not merely intended. The app currently provides the responsive renderer, state/input loop, dynamic motion, swept collision, win/loss flow, deterministic Levels 01-05, and procedural gameplay sound. Animation juice and later tiers remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides the responsive renderer, state/input loop, dynamic motion, swept collision, win/loss flow, deterministic Levels 01-05, procedural sound, and the required kinetic feedback pass. Later tiers remain pending.
+
+## Motion feedback
+
+- Released tether retraction stores the former anchor/end segment and integrates normalized spring displacement with `acceleration = -320 * displacement - 24 * velocity` on the fixed physics step. The visual is removed at rest or after `450ms`; it is not linearly tweened.
+- Each collected target creates exactly four triangular facets at `45`, `135`, `225`, and `315` degrees. Facets launch at `92 logical units/s`, alternate `+/-9 rad/s` spin, and fade linearly to zero over exactly `240ms`.
+- Target contact starts a `2.5` logical-pixel recoil vector aligned with normalized orb velocity. The whole logical scene translates by the square of remaining-life progress and reaches zero after exactly `60ms`.
+- While tether angular speed `|tangentialSpeed / radius|` exceeds `12 rad/s`, stroke width follows `1.6 + 0.6 * sin(elapsedTime * 30)`, producing the required `1.0px` through `2.2px` range. At or below the threshold it remains `1px`.
+
+Particles, recoil, and released-cord springs continue updating in terminal states so final-target feedback completes while physics is frozen.
 
 ## Audio implementation
 

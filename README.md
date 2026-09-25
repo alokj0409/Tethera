@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Procedural audio is wired into the playable core; kinetic animation and impact juice are next.** `audio.js` lazily synthesizes snap, pentatonic chime, shatter, and failure cues after the first user gesture, with no downloaded audio or runtime dependency.
+**The core loop now has its complete kinetic feedback pass; Tier 06-12 is next.** Released cords retract with a damped spring, targets split into four sharp facets, impacts recoil the full canvas, and very high angular velocity makes the tether pulse—all with programmatic geometry and the PRD timing/constants.
 
 ## Run locally
 

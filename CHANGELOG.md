@@ -6,6 +6,15 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Kinetic feedback
+
+### Added
+
+- Added released-cord retraction using the required `k = 320`, `d = 24` damped spring.
+- Added four 45-degree target facets with 240ms movement, spin, and fade.
+- Added 2.5-pixel impact recoil damped to zero over 60ms.
+- Added a 1.0-2.2px tether pulse above 12 rad/s angular velocity.
+
 ## [2026-09-25] — Procedural audio
 
 ### Added

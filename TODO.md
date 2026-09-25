@@ -4,16 +4,15 @@ Last updated: 2026-09-25
 
 This list tracks product requirements not present in the checked-in implementation. Items are ordered by the requested delivery sequence; completed work is removed from the active list and reflected in `CHANGELOG.md`.
 
-## Next increment — Animation and impact juice
+## Next increment — Tier 06-12: Centrifugal Cuts
 
-- Add tether snap spring damping with `k = 320` and `d = 24`.
-- Add four-facet target shatter particles fading over `240ms` and `2.5px`/`60ms` impact recoil.
-- Add tether-width pulse from `1.0px` to `2.2px` above `12 rad/s`.
+- Add deterministic linear and circular moving-target paths for Levels 06-12.
+- Define seeded path selection, phase, speed, extents, and swept relative-motion collision.
+- Implement target-escape failure at the outer play boundary and remove the temporary Level 05-to-01 loop.
 - Update all living documents, commit this increment alone, and push `main`.
 
 ## Remaining build order
 
-- Implement Tier 06-12 moving targets in a dedicated checkpoint.
 - Implement Tier 13-20 bouncers in a dedicated checkpoint.
 - Implement Tier 21-35 spike hazards in a dedicated checkpoint.
 - Implement Tier 36-50 paired wormholes in a dedicated checkpoint.

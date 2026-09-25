@@ -105,3 +105,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Create context during page load; create one context per cue; lazy shared context; omit audio when direct-file launched. |
 | Rationale | Mobile autoplay policies commonly suspend contexts created outside a gesture. A lazy shared context satisfies that requirement, avoids repeated context allocation, and still works when `index.html` is opened directly. |
 | Consequences | No sound can occur before the first gesture. Web Audio creation/resume failures intentionally degrade to silence; gameplay remains unaffected. Random noise timbre is not seed-deterministic because it does not affect state. |
+
+## ADR-011 — Keep feedback effects inside the fixed simulation clock
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Advance released-cord springs, target facets, recoil lifetime, and pulse phase from the same fixed-step elapsed time used by physics, including while the game is in a terminal state. |
+| Options considered | CSS animations; render-delta effects; Web Animations; fixed-step Canvas effects. |
+| Rationale | All visuals already live on Canvas, and fixed-step updates make the required `240ms`/`60ms` timing reproducible in diagnostics. Continuing effects after terminal entry lets the final target visibly shatter instead of freezing on victory. |
+| Consequences | Effects can advance in six catch-up steps after a long frame. Recoil uses quadratic decay as a compact damp-back curve; facet speed/spin and the spring's 450ms safety lifetime are implementation choices beyond the PRD constants. |
