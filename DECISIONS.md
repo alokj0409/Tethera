@@ -145,3 +145,23 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Follow the sample formula from Level 11/13; start with one spike at Level 21; apply the formula only once its named tier begins. |
 | Rationale | Gating by the progression table preserves the intended mechanic unlock, while reusing the formula inside that tier retains the specified difficulty curve and six-spike cap. Shared placement prevents center overlap across entity types. |
 | Consequences | Spike Strata begins with three hazards at Level 21 rather than one. Progression loops after Level 35 until wormholes land. |
+
+## ADR-015 — Rotate velocity between oriented wormhole gates
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Generate one pair at Levels 36-42 and two pairs at 43-50. Activate on an 18-unit swept center radius, rotate velocity by `destination - source + pi`, exit 29 units along that velocity, apply a 250ms global gate cooldown, and snap active tethers to free flight. |
+| Options considered | Preserve absolute velocity direction; rotate by gate orientation difference; rotate by difference plus `pi`; exit at gate center; offset by orb radius; per-gate or global cooldown; preserve remote tether or snap it. |
+| Rationale | Oriented rotation makes gate markings mechanically meaningful, while the added half-turn models entering one face and leaving the paired face. The offset places the full orb beyond the 18-unit activation ring, and the cooldown handles high-speed or zero-speed edge cases. Snapping avoids a remote tether undoing teleportation. |
+| Consequences | Portal use can trigger final-tether failure after teleport. Collision priority remains hazard, bouncer, wormhole, target. Progression loops after Level 50 until pulsars land. |
+
+## ADR-016 — Fall back to bounded deterministic dart throws at high density
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | When the Bridson active list exhausts before the requested entity count, attempt up to 5,000 seeded whole-field candidates through the unchanged grid separation/spawn-exclusion checks, then throw only if capacity is still insufficient. |
+| Options considered | Reduce the 70-unit spacing; reduce entity counts; restart the entire sampler; deterministic dart-throw completion; fail immediately. |
+| Rationale | Wormhole levels can require 20 centers, and a valid seed can strand the local active frontier before filling that capacity. Global candidates recover other free regions without weakening any placement guarantee or introducing nondeterminism. |
+| Consequences | Dense seeds consume a variable but deterministic number of PRNG values, which also changes later orientation and launch draws for that seed. The hard 5,000-attempt limit still fails loudly instead of overlapping entities. |

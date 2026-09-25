@@ -6,6 +6,21 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Wormhole Nodes
+
+### Added
+
+- Added deterministic oriented wormhole pairs for Levels 36-50.
+- Added swept gate entry, paired exit placement, velocity rotation with exact speed preservation, and 250ms re-entry suppression.
+- Added flat programmatic gate rings and orientation marks with no glow or gradient.
+- Added tether snap-to-free-flight behavior on portal entry.
+- Added a bounded deterministic dart-throw fallback when dense Poisson sampling exhausts its active frontier.
+
+### Changed
+
+- Extended deterministic generation and progression through Level 50.
+- Moved the temporary milestone progression loop to Level 50.
+
 ## [2026-09-25] — Spike Strata
 
 ### Added

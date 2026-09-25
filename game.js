@@ -9,7 +9,7 @@
   const VECTOR_EPSILON = 1e-6;
   const LEVEL_SEED_MULTIPLIER = 49297;
   const POISSON_MIN_DISTANCE = 70;
-  const MAX_IMPLEMENTED_LEVEL = 35;
+  const MAX_IMPLEMENTED_LEVEL = 50;
   const PLAY_PADDING = 60;
   const PLAY_TOP = 100;
   const PLAY_HEIGHT = LOGICAL_HEIGHT - 180;
@@ -22,6 +22,8 @@
   const TETHER_PULSE_THRESHOLD = 12;
   const BOUNCER_SPEED_MULTIPLIER = 1.1;
   const BOUNCER_CONTACT_COOLDOWN = 0.08;
+  const WORMHOLE_RADIUS = 18;
+  const WORMHOLE_COOLDOWN = 0.25;
   const TARGET_ESCAPE_BOUNDS = Object.freeze({
     left: 0,
     right: LOGICAL_WIDTH,
@@ -103,6 +105,8 @@
     targets: [],
     hazards: [],
     bouncers: [],
+    wormholes: [],
+    wormholeCooldown: 0,
     particles: [],
     tetherSnap: null,
     recoil: null,
@@ -212,6 +216,17 @@
       }
     }
 
+    for (
+      let attempt = 0;
+      attempt < 5000 && samples.length < desiredCount;
+      attempt += 1
+    ) {
+      const candidate = { x: random() * width, y: random() * height };
+      if (isValid(candidate)) {
+        insert(candidate);
+      }
+    }
+
     if (samples.length < desiredCount) {
       throw new Error(
         `Poisson sampler produced ${samples.length}/${desiredCount} points.`,
@@ -251,12 +266,14 @@
       levelIndex >= 13 ? Math.min(1 + Math.floor((levelIndex - 13) / 3), 3) : 0;
     const hazardCount =
       levelIndex >= 21 ? Math.min(Math.floor((levelIndex - 10) / 3), 6) : 0;
+    const wormholePairCount =
+      levelIndex >= 36 ? (levelIndex >= 43 ? 2 : 1) : 0;
     const points = poissonDiscSampling(
       playWidth,
       PLAY_HEIGHT,
       POISSON_MIN_DISTANCE,
       random,
-      targetCount + bouncerCount + hazardCount,
+      targetCount + bouncerCount + hazardCount + wormholePairCount * 2,
       acceptsPoint,
     );
     const targets = points.slice(0, targetCount).map((point, index) => ({
@@ -334,6 +351,23 @@
         rotation: random() * Math.PI * 2,
       }));
 
+    const wormholes = points
+      .slice(
+        targetCount + bouncerCount + hazardCount,
+        targetCount +
+          bouncerCount +
+          hazardCount +
+          wormholePairCount * 2,
+      )
+      .map((point, index) => ({
+        id: index + 1,
+        pairId: Math.floor(index / 2) + 1,
+        x: point.x + PLAY_PADDING,
+        y: point.y + PLAY_TOP,
+        radius: WORMHOLE_RADIUS,
+        rotation: random() * Math.PI * 2,
+      }));
+
     const launchAngle = -Math.PI * (0.58 + random() * 0.34);
     const launchSpeed = 82 + random() * 18;
 
@@ -350,6 +384,7 @@
       targets,
       hazards,
       bouncers,
+      wormholes,
       gravityPoles: [],
     };
   }
@@ -374,6 +409,8 @@
     runtime.targets = level.targets;
     runtime.hazards = level.hazards;
     runtime.bouncers = level.bouncers;
+    runtime.wormholes = level.wormholes;
+    runtime.wormholeCooldown = 0;
     runtime.particles = [];
     runtime.tetherSnap = null;
     runtime.recoil = null;
@@ -631,6 +668,10 @@
 
   function updateEffects(deltaSeconds) {
     runtime.elapsedTime += deltaSeconds;
+    runtime.wormholeCooldown = Math.max(
+      0,
+      runtime.wormholeCooldown - deltaSeconds,
+    );
 
     for (const bouncer of runtime.bouncers) {
       bouncer.cooldown = Math.max(0, bouncer.cooldown - deltaSeconds);
@@ -783,6 +824,66 @@
     return true;
   }
 
+  function teleportThroughWormhole(start, end) {
+    if (runtime.wormholeCooldown > 0) {
+      return false;
+    }
+
+    for (const source of runtime.wormholes) {
+      if (
+        squaredDistancePointToSegment(source, start, end) >
+        source.radius * source.radius
+      ) {
+        continue;
+      }
+
+      const destination = runtime.wormholes.find(
+        (gate) => gate.pairId === source.pairId && gate.id !== source.id,
+      );
+      if (!destination) {
+        continue;
+      }
+
+      if (runtime.currentState === GAME_STATE.TETHERED) {
+        startTetherSnap();
+        runtime.lastTetherRadius = runtime.tether.radius;
+        runtime.activeAnchor = null;
+        runtime.activePointerId = null;
+        runtime.tether = null;
+        transitionTo(GAME_STATE.FREE_FLIGHT);
+        playSound("playSnap");
+      }
+
+      const speed = Math.hypot(runtime.orb.vel.x, runtime.orb.vel.y);
+      const rotationDelta =
+        destination.rotation - source.rotation + Math.PI;
+      const cosine = Math.cos(rotationDelta);
+      const sine = Math.sin(rotationDelta);
+      const velocityX =
+        runtime.orb.vel.x * cosine - runtime.orb.vel.y * sine;
+      const velocityY =
+        runtime.orb.vel.x * sine + runtime.orb.vel.y * cosine;
+      runtime.orb.vel.x = velocityX;
+      runtime.orb.vel.y = velocityY;
+
+      const exitDirectionX =
+        speed > VECTOR_EPSILON ? velocityX / speed : Math.cos(destination.rotation);
+      const exitDirectionY =
+        speed > VECTOR_EPSILON ? velocityY / speed : Math.sin(destination.rotation);
+      const exitDistance = destination.radius + runtime.orb.radius + 2;
+      runtime.orb.pos.x = destination.x + exitDirectionX * exitDistance;
+      runtime.orb.pos.y = destination.y + exitDirectionY * exitDistance;
+      runtime.wormholeCooldown = WORMHOLE_COOLDOWN;
+
+      if (runtime.tethersRemaining === 0 && hasActiveTargets()) {
+        enterTerminalState(GAME_STATE.GAME_OVER);
+      }
+      return true;
+    }
+
+    return false;
+  }
+
   function resolveCollisions(start, end, targetStarts) {
     if (runtime.hazards.some((hazard) => sweptOrbHitsHazard(start, end, hazard))) {
       enterTerminalState(GAME_STATE.GAME_OVER);
@@ -794,6 +895,12 @@
         break;
       }
     }
+
+    if (runtime.currentState === GAME_STATE.GAME_OVER) {
+      return;
+    }
+
+    teleportThroughWormhole(start, end);
 
     if (runtime.currentState === GAME_STATE.GAME_OVER) {
       return;
@@ -1106,6 +1213,41 @@
     }
   }
 
+  function drawWormholes() {
+    for (const gate of runtime.wormholes) {
+      const color = gate.pairId % 2 === 1 ? COLORS.tether : COLORS.targetActive;
+      context.strokeStyle = color;
+      context.lineWidth = 1;
+      context.beginPath();
+      context.arc(gate.x, gate.y, gate.radius, 0, Math.PI * 2);
+      context.stroke();
+
+      context.beginPath();
+      context.arc(gate.x, gate.y, gate.radius - 5, -0.2, Math.PI * 0.8);
+      context.stroke();
+      context.beginPath();
+      context.arc(
+        gate.x,
+        gate.y,
+        gate.radius - 5,
+        Math.PI - 0.2,
+        Math.PI * 1.8,
+      );
+      context.stroke();
+
+      context.beginPath();
+      context.moveTo(
+        gate.x + Math.cos(gate.rotation) * (gate.radius - 3),
+        gate.y + Math.sin(gate.rotation) * (gate.radius - 3),
+      );
+      context.lineTo(
+        gate.x + Math.cos(gate.rotation) * (gate.radius + 3),
+        gate.y + Math.sin(gate.rotation) * (gate.radius + 3),
+      );
+      context.stroke();
+    }
+  }
+
   function drawShatterParticles() {
     for (const particle of runtime.particles) {
       context.save();
@@ -1254,6 +1396,7 @@
 
     drawGrid();
     drawTargets();
+    drawWormholes();
     drawHazards();
     drawBouncers();
     drawShatterParticles();

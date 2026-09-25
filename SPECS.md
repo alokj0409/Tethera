@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: Spike Strata (Levels 21-35)
+Implementation checkpoint: Wormhole Nodes (Levels 36-50)
 
-This file describes the repository as implemented, not merely intended. The app currently provides the complete core loop and deterministic progression through Spike Strata at Level 35. Wormhole Nodes and Pulsar Fields remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides the complete core loop and deterministic progression through Wormhole Nodes at Level 50. Pulsar Fields remain pending.
 
 ## Motion feedback
 
@@ -79,7 +79,7 @@ The HUD shows zero-padded level number, cleared/total target count, and remainin
 
 ## Level generation
 
-Levels 01-35 use these implemented parameters:
+Levels 01-50 use these implemented parameters:
 
 - Seed input: unsigned `Math.imul(levelIndex, 49297)`, fed to Mulberry32.
 - Logical placement padding: `60` units horizontally and a `100`-unit header offset.
@@ -88,9 +88,9 @@ Levels 01-35 use these implemented parameters:
 - Hazard count: zero through Level 20; from Level 21, `min(floor((levelIndex - 10) / 3), 6)`.
 - Tether allowance: `max(6, formula)` for Levels 01-05, then the PRD formula `max(3, targetCount + 2 - floor(levelIndex / 25))` for Levels 06-12.
 - Poisson-disc minimum separation: `70` logical units.
-- Target radius: `14`; hazard radius: `12`; gravity poles: none through Level 35.
+- Target radius: `14`; hazard radius: `12`; wormhole radius: `18`; gravity poles: none through Level 50.
 
-The generator uses Bridson active-list Poisson-disc sampling with a grid cell size of `70 / sqrt(2)` and up to 30 annulus candidates per active point. Samples must also stay at least `110` logical units from the fixed orb spawn `(195, 690)`. The orb launches at a seeded speed in `[82, 100)` and a seeded upward angle from `-0.58pi` through `-0.92pi`.
+The generator uses Bridson active-list Poisson-disc sampling with a grid cell size of `70 / sqrt(2)` and up to 30 annulus candidates per active point. If that active list exhausts below the requested high-tier entity count, up to 5,000 deterministic whole-field dart throws continue through the same grid validity test; overlap is never relaxed. Samples must also stay at least `110` logical units from the fixed orb spawn `(195, 690)`. The orb launches at a seeded speed in `[82, 100)` and a seeded upward angle from `-0.58pi` through `-0.92pi`.
 
 For Levels 06-12, the first target always moves and each additional target moves when a seeded `rng() > 0.5` test passes. Moving targets use a seeded speed in `[72, 90)` logical units/s and select one of two paths:
 
@@ -105,7 +105,9 @@ Bouncer collision compares the swept orb-center segment with the bouncer segment
 
 Levels 21-35 add three to six lethal triangle hazards after targets and bouncers in the same Poisson-disc stream. Each has a seeded rotation and 12-unit circumradius. Rendering and collision share the same three computed vertices; swept contact uses triangle containment plus the orb-radius edge capsules described above.
 
-The PRD tier table promises `6+` tethers for Linear Orbits, while its sample formula yields 4 or 5 for those levels. The implemented minimum of 6 follows the tier table. Until Tier 36 is implemented, victory after Level 35 cycles to Level 01 rather than exposing an incomplete tier.
+Levels 36-42 add one wormhole pair; Levels 43-50 add two. Gate centers consume two Poisson-disc points per pair after hazards, and each gate receives a seeded orientation. Swept entry activates when the orb-center path comes within the 18-unit gate radius. The paired exit rotates velocity by `destinationRotation - sourceRotation + pi`, preserving magnitude exactly, then places the orb `18 + orbRadius + 2` units from the destination along that rotated velocity. A pair-wide `250ms` cooldown prevents immediate re-entry. Tethered entry snaps to `FREE_FLIGHT`; the final-tether failure rule still applies.
+
+The PRD tier table promises `6+` tethers for Linear Orbits, while its sample formula yields 4 or 5 for those levels. The implemented minimum of 6 follows the tier table. Until Tier 51 is implemented, victory after Level 50 cycles to Level 01 rather than exposing an incomplete tier.
 
 ## State machine and input
 
@@ -129,5 +131,5 @@ The runtime uses a fixed `390 x 844` logical coordinate system. It measures the 
 
 - Linear Orbits enforces a six-tether floor instead of the PRD pseudocode's lower result, resolving the conflict in favor of the explicit tier table.
 - The sample hazard-count formula would introduce hazards at Level 13, but the implemented generator follows the progression table and waits until Level 21.
-- Progression temporarily cycles from Level 35 to Level 01 because no later tier is implemented yet.
+- Progression temporarily cycles from Level 50 to Level 01 because no later tier is implemented yet.
 - Safe-area padding is applied outside the logical game surface, so the aspect-fit calculation uses only unobstructed content space.
