@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Collision and outcomes
+
+### Added
+
+- Added swept circle contact for target collection across each physics step.
+- Added swept orb-versus-triangle collision using the exact rendered hazard edges.
+- Added active victory and game-over transitions with terminal physics freeze and tether cleanup.
+
+### Changed
+
+- Hazard impact now takes precedence over target collection in the same physics step.
+- Target data now carries its explicit 14-unit collision radius.
+
 ## [2026-09-25] — Token-complete rendering
 
 ### Added

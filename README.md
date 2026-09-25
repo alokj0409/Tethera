@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**The production visual language is live; collision and outcomes are next.** The game now renders the complete flat geometric vocabulary and editorial HUD with every PRD color token, manually tracked system-monospace labels, logical grid marks, orbital guides, and a programmatic restart control.
+**Targets, lethal spikes, and level outcomes are live; deterministic Tier 01-05 generation is next.** Swept collision tests collect target cores without ordinary tunneling, fail on the visible triangle edges, and activate the victory/game-over flow while retaining direct restart and next-level input.
 
 ## Run locally
 
@@ -20,7 +20,7 @@ No package manager, dependency installation, bundler, or external asset download
 - Press the circular-arrow control at bottom right to restart the current level.
 - Clear every target before the allotted tether count reaches zero.
 
-The controls and orb motion are interactive. Targets and the displayed spike are visual-only until the next collision checkpoint, so the current build is still a physics playground rather than a complete level.
+The controls, physics, target collection, spike failure, victory, and reset loop are interactive. Layouts are still fixed placeholders until deterministic generation lands.
 
 ## Project structure
 

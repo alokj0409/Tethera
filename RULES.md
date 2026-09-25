@@ -1,9 +1,9 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: token-complete rendering
+Implementation checkpoint: collision and outcomes
 
-This file is the definitive rules reference for the checked-in game. State transitions, input, tether accounting, and orb/tether motion are active; contacts and procedural tiers remain canonical requirements until their implementation checkpoints land.
+This file is the definitive rules reference for the checked-in game. State transitions, input, tether accounting, orb/tether motion, target contact, spike failure, and victory are active; generated progression and later-tier mechanics remain canonical requirements until their implementation checkpoints land.
 
 ## Objective
 
@@ -44,16 +44,14 @@ An anchor placed closer than `12` logical units to the orb is shifted to an effe
 
 ## Contacts and entities
 
-- **Target core:** circle-circle contact with the orb shatters and clears the target. Clearing the final target wins the level.
-- **Hazard spike:** lethal contact immediately fails the level. Geometry is triangular in the visual design; the precise collision representation is pending.
+- **Target core:** swept circle-circle contact clears the target. The orb-center path for a physics step is tested against a circle whose radius is `orbRadius + targetRadius`. Clearing the final target wins the level.
+- **Hazard spike:** lethal contact immediately fails the level. The rendered triangle is the collision polygon; the swept orb center is tested against the triangle interior and a capsule of `orbRadius` around each edge.
 - **Bouncer:** a non-lethal line barricade that reflects the orb at `1.1x` return speed. The exact normal/reflection and anti-repeat-contact rules are pending.
 - **Wormhole pair:** entering one gate exits through its paired gate while preserving `|v|`. Exit direction, offset, and re-entry cooldown are pending.
 - **Pulsar field:** periodically applies gravity that warps the orb trajectory. Force falloff, pulse timing, duration, and stacking are pending.
 - **Moving target:** follows either a linear or circular path. Path bounds, phase, and escape detection are pending.
 
-Pending details above are not implemented gameplay and are tracked in `TODO.md` for later ADRs.
-
-The currently displayed target cores and triangular spike use the final visual forms, but contact has no gameplay effect until collision detection is implemented.
+Pending details above are not implemented gameplay and are tracked in `TODO.md` for later ADRs. When a spike hit and final-target contact are both possible in one fixed step, the spike loss takes precedence. The outer logical boundary currently has no collision response.
 
 ## Level tiers
 

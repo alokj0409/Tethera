@@ -65,3 +65,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Rely on Canvas `letterSpacing`; omit tracking; position each glyph manually. |
 | Rationale | Canvas `letterSpacing` support is not consistent enough across the target mobile range, while manual placement implements the PRD's `+0.12em` typography without a font asset or DOM overlay. |
 | Consequences | Text measurement and alignment require a small custom renderer. HUD strings are short, so the additional per-frame glyph calls remain negligible and will be checked in the final performance pass. |
+
+## ADR-007 — Use swept contacts and give hazards same-step precedence
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Test each fixed-step orb-center segment against expanded target circles and orb-radius capsules around the exact rendered triangle edges. Resolve a hazard hit before any target contacts from the same step. |
+| Options considered | Endpoint-only overlap; swept point tests; adaptive sub-stepping; final-target victory before hazards; hazard before target. |
+| Rationale | Swept tests prevent ordinary straight-line tunneling without increasing the global simulation rate. Matching the visual triangle prevents invisible collision margins. A lethal obstacle should not be negated by simultaneously touching the final target. |
+| Consequences | Extremely high angular velocity can trace a curved arc that differs materially from its one-step chord; adaptive collision sub-stepping remains a final performance/robustness task. Targets touched on a hazard-loss step remain active because hazard evaluation short-circuits the step. |

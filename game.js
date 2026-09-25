@@ -30,7 +30,11 @@
   });
 
   const ALLOWED_TRANSITIONS = Object.freeze({
-    [GAME_STATE.AWAITING_INPUT]: new Set([GAME_STATE.TETHERED]),
+    [GAME_STATE.AWAITING_INPUT]: new Set([
+      GAME_STATE.TETHERED,
+      GAME_STATE.VICTORY,
+      GAME_STATE.GAME_OVER,
+    ]),
     [GAME_STATE.TETHERED]: new Set([
       GAME_STATE.FREE_FLIGHT,
       GAME_STATE.VICTORY,
@@ -81,9 +85,9 @@
 
   function createPlaceholderTargets() {
     return [
-      { id: 1, x: 108, y: 278, active: true },
-      { id: 2, x: 282, y: 336, active: true },
-      { id: 3, x: 204, y: 184, active: true },
+      { id: 1, x: 108, y: 278, radius: 14, active: true },
+      { id: 2, x: 282, y: 336, radius: 14, active: true },
+      { id: 3, x: 204, y: 184, radius: 14, active: true },
     ];
   }
 
@@ -177,6 +181,146 @@
     };
   }
 
+  function squaredDistancePointToSegment(point, segmentStart, segmentEnd) {
+    const segmentX = segmentEnd.x - segmentStart.x;
+    const segmentY = segmentEnd.y - segmentStart.y;
+    const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+
+    if (segmentLengthSquared <= VECTOR_EPSILON) {
+      const dx = point.x - segmentStart.x;
+      const dy = point.y - segmentStart.y;
+      return dx * dx + dy * dy;
+    }
+
+    const projection = Math.max(
+      0,
+      Math.min(
+        1,
+        ((point.x - segmentStart.x) * segmentX +
+          (point.y - segmentStart.y) * segmentY) /
+          segmentLengthSquared,
+      ),
+    );
+    const nearestX = segmentStart.x + segmentX * projection;
+    const nearestY = segmentStart.y + segmentY * projection;
+    const dx = point.x - nearestX;
+    const dy = point.y - nearestY;
+    return dx * dx + dy * dy;
+  }
+
+  function cross(a, b, c) {
+    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+  }
+
+  function segmentsIntersect(a, b, c, d) {
+    const abC = cross(a, b, c);
+    const abD = cross(a, b, d);
+    const cdA = cross(c, d, a);
+    const cdB = cross(c, d, b);
+
+    if (
+      ((abC > 0 && abD < 0) || (abC < 0 && abD > 0)) &&
+      ((cdA > 0 && cdB < 0) || (cdA < 0 && cdB > 0))
+    ) {
+      return true;
+    }
+
+    return (
+      (Math.abs(abC) <= VECTOR_EPSILON &&
+        squaredDistancePointToSegment(c, a, b) <= VECTOR_EPSILON) ||
+      (Math.abs(abD) <= VECTOR_EPSILON &&
+        squaredDistancePointToSegment(d, a, b) <= VECTOR_EPSILON) ||
+      (Math.abs(cdA) <= VECTOR_EPSILON &&
+        squaredDistancePointToSegment(a, c, d) <= VECTOR_EPSILON) ||
+      (Math.abs(cdB) <= VECTOR_EPSILON &&
+        squaredDistancePointToSegment(b, c, d) <= VECTOR_EPSILON)
+    );
+  }
+
+  function squaredDistanceSegmentToSegment(a, b, c, d) {
+    if (segmentsIntersect(a, b, c, d)) {
+      return 0;
+    }
+
+    return Math.min(
+      squaredDistancePointToSegment(a, c, d),
+      squaredDistancePointToSegment(b, c, d),
+      squaredDistancePointToSegment(c, a, b),
+      squaredDistancePointToSegment(d, a, b),
+    );
+  }
+
+  function getHazardVertices(hazard) {
+    const cosine = Math.cos(hazard.rotation);
+    const sine = Math.sin(hazard.rotation);
+    return [
+      { x: 0, y: -hazard.radius },
+      { x: hazard.radius * 0.88, y: hazard.radius * 0.62 },
+      { x: -hazard.radius * 0.88, y: hazard.radius * 0.62 },
+    ].map((point) => ({
+      x: hazard.x + point.x * cosine - point.y * sine,
+      y: hazard.y + point.x * sine + point.y * cosine,
+    }));
+  }
+
+  function pointInTriangle(point, vertices) {
+    const signs = vertices.map((vertex, index) =>
+      cross(vertex, vertices[(index + 1) % vertices.length], point),
+    );
+    const hasNegative = signs.some((value) => value < -VECTOR_EPSILON);
+    const hasPositive = signs.some((value) => value > VECTOR_EPSILON);
+    return !(hasNegative && hasPositive);
+  }
+
+  function sweptOrbHitsHazard(start, end, hazard) {
+    const vertices = getHazardVertices(hazard);
+    if (pointInTriangle(start, vertices) || pointInTriangle(end, vertices)) {
+      return true;
+    }
+
+    const radiusSquared = runtime.orb.radius * runtime.orb.radius;
+    return vertices.some((vertex, index) => {
+      const nextVertex = vertices[(index + 1) % vertices.length];
+      return (
+        squaredDistanceSegmentToSegment(start, end, vertex, nextVertex) <=
+        radiusSquared
+      );
+    });
+  }
+
+  function enterTerminalState(state) {
+    runtime.activeAnchor = null;
+    runtime.activePointerId = null;
+    runtime.tether = null;
+    transitionTo(state);
+  }
+
+  function resolveCollisions(start, end) {
+    if (runtime.hazards.some((hazard) => sweptOrbHitsHazard(start, end, hazard))) {
+      enterTerminalState(GAME_STATE.GAME_OVER);
+      return;
+    }
+
+    for (const target of runtime.targets) {
+      if (!target.active) {
+        continue;
+      }
+
+      const contactRadius = runtime.orb.radius + target.radius;
+      if (
+        squaredDistancePointToSegment(target, start, end) <=
+        contactRadius * contactRadius
+      ) {
+        target.active = false;
+        runtime.scoreStreak += 1;
+      }
+    }
+
+    if (!hasActiveTargets()) {
+      enterTerminalState(GAME_STATE.VICTORY);
+    }
+  }
+
   function updatePhysics(deltaSeconds) {
     if (
       runtime.currentState === GAME_STATE.VICTORY ||
@@ -184,6 +328,8 @@
     ) {
       return;
     }
+
+    const start = { x: runtime.orb.pos.x, y: runtime.orb.pos.y };
 
     if (runtime.currentState === GAME_STATE.TETHERED && runtime.tether) {
       const tether = runtime.tether;
@@ -198,11 +344,13 @@
       runtime.orb.pos.y = tether.anchor.y + radialY * tether.radius;
       runtime.orb.vel.x = tangentX * tether.tangentialSpeed;
       runtime.orb.vel.y = tangentY * tether.tangentialSpeed;
+      resolveCollisions(start, runtime.orb.pos);
       return;
     }
 
     runtime.orb.pos.x += runtime.orb.vel.x * deltaSeconds;
     runtime.orb.pos.y += runtime.orb.vel.y * deltaSeconds;
+    resolveCollisions(start, runtime.orb.pos);
   }
 
   function handlePointerDown(event) {
@@ -369,7 +517,7 @@
       context.strokeStyle = COLORS.targetIdle;
       context.lineWidth = 1;
       context.beginPath();
-      context.arc(target.x, target.y, 14, 0, Math.PI * 2);
+      context.arc(target.x, target.y, target.radius, 0, Math.PI * 2);
       context.stroke();
       context.beginPath();
       context.arc(target.x, target.y, 9, 0, Math.PI * 2);
@@ -384,17 +532,18 @@
 
   function drawHazards() {
     for (const hazard of runtime.hazards) {
-      context.save();
-      context.translate(hazard.x, hazard.y);
-      context.rotate(hazard.rotation);
+      const vertices = getHazardVertices(hazard);
       context.fillStyle = COLORS.hazard;
       context.beginPath();
-      context.moveTo(0, -hazard.radius);
-      context.lineTo(hazard.radius * 0.88, hazard.radius * 0.62);
-      context.lineTo(-hazard.radius * 0.88, hazard.radius * 0.62);
+      context.moveTo(vertices[0].x, vertices[0].y);
+      context.lineTo(vertices[1].x, vertices[1].y);
+      context.lineTo(vertices[2].x, vertices[2].y);
       context.closePath();
       context.fill();
 
+      context.save();
+      context.translate(hazard.x, hazard.y);
+      context.rotate(hazard.rotation);
       context.fillStyle = COLORS.background;
       context.beginPath();
       context.moveTo(0, -hazard.radius * 0.42);
