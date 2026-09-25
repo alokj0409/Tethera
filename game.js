@@ -15,8 +15,11 @@
     tether: "#E87A5D",
     targetIdle: "#2D3139",
     targetActive: "#F0C05A",
+    hazard: "#D94E41",
     ui: "#8E929C",
   });
+
+  const RESTART_CONTROL = Object.freeze({ x: 350, y: 794, radius: 18 });
 
   const GAME_STATE = Object.freeze({
     AWAITING_INPUT: "AWAITING_INPUT",
@@ -72,6 +75,7 @@
     tether: null,
     lastTetherRadius: null,
     targets: [],
+    hazards: [],
     particles: [],
   };
 
@@ -81,6 +85,10 @@
       { id: 2, x: 282, y: 336, active: true },
       { id: 3, x: 204, y: 184, active: true },
     ];
+  }
+
+  function createPlaceholderHazards() {
+    return [{ id: 1, x: 304, y: 528, radius: 17, rotation: -0.3 }];
   }
 
   function initializeLevel(levelIndex = runtime.currentLevelIndex) {
@@ -97,6 +105,7 @@
     runtime.tether = null;
     runtime.lastTetherRadius = null;
     runtime.targets = createPlaceholderTargets();
+    runtime.hazards = createPlaceholderHazards();
     runtime.particles = [];
     renderScene();
   }
@@ -202,6 +211,17 @@
     }
 
     event.preventDefault();
+    const pointerPoint = logicalPointFromPointer(event);
+
+    if (
+      Math.hypot(
+        pointerPoint.x - RESTART_CONTROL.x,
+        pointerPoint.y - RESTART_CONTROL.y,
+      ) <= RESTART_CONTROL.radius
+    ) {
+      initializeLevel(runtime.currentLevelIndex);
+      return;
+    }
 
     if (
       runtime.currentState === GAME_STATE.GAME_OVER ||
@@ -223,7 +243,7 @@
       return;
     }
 
-    const tether = createTether(logicalPointFromPointer(event));
+    const tether = createTether(pointerPoint);
     runtime.activeAnchor = tether.anchor;
     runtime.activePointerId = event.pointerId;
     runtime.tether = tether;
@@ -255,23 +275,89 @@
     renderScene();
   }
 
-  function drawHud() {
-    context.fillStyle = COLORS.ui;
-    context.font = "11px monospace";
-    context.textBaseline = "middle";
+  function drawTrackedText(text, x, y, options = {}) {
+    const {
+      align = "left",
+      color = COLORS.ui,
+      fontSize = 11,
+      tracking = fontSize * 0.12,
+    } = options;
+    const glyphs = [...text.toUpperCase()];
+    context.font = `${fontSize}px "SFMono-Regular", Consolas, "Liberation Mono", monospace`;
     context.textAlign = "left";
-    context.fillText(
+    context.textBaseline = "middle";
+    context.fillStyle = color;
+
+    const widths = glyphs.map((glyph) => context.measureText(glyph).width);
+    const textWidth =
+      widths.reduce((total, width) => total + width, 0) +
+      Math.max(0, glyphs.length - 1) * tracking;
+    let cursorX =
+      align === "center" ? x - textWidth / 2 : align === "right" ? x - textWidth : x;
+
+    glyphs.forEach((glyph, index) => {
+      context.fillText(glyph, cursorX, y);
+      cursorX += widths[index] + tracking;
+    });
+  }
+
+  function drawGrid() {
+    context.strokeStyle = COLORS.subtle;
+    context.lineWidth = 1;
+
+    for (let y = 128; y <= 704; y += 96) {
+      for (let x = 51; x <= 339; x += 72) {
+        context.beginPath();
+        context.moveTo(x - 2.5, y + 0.5);
+        context.lineTo(x + 2.5, y + 0.5);
+        context.moveTo(x + 0.5, y - 2.5);
+        context.lineTo(x + 0.5, y + 2.5);
+        context.stroke();
+      }
+    }
+  }
+
+  function drawHud() {
+    const activeTargets = runtime.targets.filter((target) => target.active).length;
+    const clearedTargets = runtime.targets.length - activeTargets;
+
+    drawTrackedText(
       `LEVEL ${String(runtime.currentLevelIndex).padStart(3, "0")}`,
       28,
-      52,
+      48,
+    );
+    drawTrackedText(
+      `TARGETS ${clearedTargets}/${runtime.targets.length}`,
+      362,
+      48,
+      { align: "right" },
     );
 
-    context.textAlign = "right";
-    context.fillText(`TETHERS ${runtime.tethersRemaining}`, 362, 52);
+    context.strokeStyle = COLORS.subtle;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.moveTo(28, 70.5);
+    context.lineTo(362, 70.5);
+    context.stroke();
 
-    context.textAlign = "center";
-    context.fillStyle = COLORS.subtle;
-    context.fillText(runtime.currentState.replace("_", " "), 195, 79);
+    drawTrackedText(`TETHERS ${runtime.tethersRemaining}`, 28, 795);
+  }
+
+  function drawRestartControl() {
+    const { x, y } = RESTART_CONTROL;
+    context.strokeStyle = COLORS.ui;
+    context.fillStyle = COLORS.ui;
+    context.lineWidth = 1;
+    context.beginPath();
+    context.arc(x, y, 8, -Math.PI * 0.35, Math.PI * 1.35);
+    context.stroke();
+
+    context.beginPath();
+    context.moveTo(x + 7.5, y - 6.5);
+    context.lineTo(x + 11.5, y - 7.5);
+    context.lineTo(x + 9, y - 3.5);
+    context.closePath();
+    context.fill();
   }
 
   function drawTargets() {
@@ -280,18 +366,60 @@
         continue;
       }
 
+      context.strokeStyle = COLORS.targetIdle;
+      context.lineWidth = 1;
       context.beginPath();
       context.arc(target.x, target.y, 14, 0, Math.PI * 2);
-      context.fillStyle = COLORS.targetIdle;
-      context.fill();
-      context.strokeStyle = COLORS.targetActive;
-      context.lineWidth = 1;
       context.stroke();
+      context.beginPath();
+      context.arc(target.x, target.y, 9, 0, Math.PI * 2);
+      context.stroke();
+
+      context.fillStyle = COLORS.targetActive;
+      context.beginPath();
+      context.arc(target.x, target.y, 3.5, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
+  function drawHazards() {
+    for (const hazard of runtime.hazards) {
+      context.save();
+      context.translate(hazard.x, hazard.y);
+      context.rotate(hazard.rotation);
+      context.fillStyle = COLORS.hazard;
+      context.beginPath();
+      context.moveTo(0, -hazard.radius);
+      context.lineTo(hazard.radius * 0.88, hazard.radius * 0.62);
+      context.lineTo(-hazard.radius * 0.88, hazard.radius * 0.62);
+      context.closePath();
+      context.fill();
+
+      context.fillStyle = COLORS.background;
+      context.beginPath();
+      context.moveTo(0, -hazard.radius * 0.42);
+      context.lineTo(hazard.radius * 0.36, hazard.radius * 0.25);
+      context.lineTo(-hazard.radius * 0.36, hazard.radius * 0.25);
+      context.closePath();
+      context.fill();
+      context.restore();
     }
   }
 
   function drawOrbAndAnchor() {
-    if (runtime.activeAnchor) {
+    if (runtime.tether && runtime.activeAnchor) {
+      context.strokeStyle = COLORS.subtle;
+      context.lineWidth = 1;
+      context.beginPath();
+      context.arc(
+        runtime.activeAnchor.x,
+        runtime.activeAnchor.y,
+        runtime.tether.radius,
+        0,
+        Math.PI * 2,
+      );
+      context.stroke();
+
       context.beginPath();
       context.moveTo(runtime.activeAnchor.x, runtime.activeAnchor.y);
       context.lineTo(runtime.orb.pos.x, runtime.orb.pos.y);
@@ -299,12 +427,20 @@
       context.lineWidth = 1;
       context.stroke();
 
+      context.fillStyle = COLORS.background;
+      context.strokeStyle = COLORS.tether;
+      context.lineWidth = 1;
       context.beginPath();
-      context.arc(runtime.activeAnchor.x, runtime.activeAnchor.y, 3, 0, Math.PI * 2);
+      context.arc(runtime.activeAnchor.x, runtime.activeAnchor.y, 4, 0, Math.PI * 2);
+      context.fill();
+      context.stroke();
       context.fillStyle = COLORS.tether;
+      context.beginPath();
+      context.arc(runtime.activeAnchor.x, runtime.activeAnchor.y, 1.5, 0, Math.PI * 2);
       context.fill();
     }
 
+    context.fillStyle = COLORS.orb;
     context.beginPath();
     context.arc(
       runtime.orb.pos.x,
@@ -313,37 +449,41 @@
       0,
       Math.PI * 2,
     );
-    context.fillStyle = COLORS.orb;
+    context.fill();
+    context.fillStyle = COLORS.background;
+    context.beginPath();
+    context.arc(runtime.orb.pos.x, runtime.orb.pos.y, 2, 0, Math.PI * 2);
     context.fill();
   }
 
   function drawStatusMessage() {
-    context.textAlign = "center";
-    context.textBaseline = "middle";
-
     if (runtime.currentState === GAME_STATE.GAME_OVER) {
-      context.fillStyle = COLORS.tether;
-      context.font = "14px monospace";
-      context.fillText("TETHER LIMIT REACHED", 195, 672);
-      context.fillStyle = COLORS.ui;
-      context.font = "11px monospace";
-      context.fillText("PRESS TO RESET", 195, 700);
+      context.fillStyle = COLORS.subtle;
+      context.fillRect(48, 650, 294, 72);
+      drawTrackedText("TETHER LIMIT REACHED", 195, 676, {
+        align: "center",
+        color: COLORS.hazard,
+        fontSize: 13,
+      });
+      drawTrackedText("PRESS TO RESET", 195, 704, { align: "center" });
       return;
     }
 
     if (runtime.currentState === GAME_STATE.VICTORY) {
-      context.fillStyle = COLORS.targetActive;
-      context.font = "14px monospace";
-      context.fillText("FIELD CLEARED", 195, 672);
-      context.fillStyle = COLORS.ui;
-      context.font = "11px monospace";
-      context.fillText("PRESS FOR NEXT FIELD", 195, 700);
+      context.fillStyle = COLORS.subtle;
+      context.fillRect(48, 650, 294, 72);
+      drawTrackedText("FIELD CLEARED", 195, 676, {
+        align: "center",
+        color: COLORS.targetActive,
+        fontSize: 13,
+      });
+      drawTrackedText("PRESS FOR NEXT FIELD", 195, 704, { align: "center" });
       return;
     }
 
-    context.fillStyle = COLORS.ui;
-    context.font = "11px monospace";
-    context.fillText("PRESS / HOLD / RELEASE", 195, 780);
+    if (runtime.currentState === GAME_STATE.AWAITING_INPUT) {
+      drawTrackedText("PRESS TO TETHER", 195, 754, { align: "center" });
+    }
   }
 
   function renderScene() {
@@ -359,13 +499,12 @@
     context.fillStyle = COLORS.background;
     context.fillRect(0, 0, LOGICAL_WIDTH, LOGICAL_HEIGHT);
 
-    context.strokeStyle = COLORS.subtle;
-    context.lineWidth = 1;
-    context.strokeRect(24.5, 24.5, LOGICAL_WIDTH - 49, LOGICAL_HEIGHT - 49);
-
-    drawHud();
+    drawGrid();
     drawTargets();
+    drawHazards();
     drawOrbAndAnchor();
+    drawHud();
+    drawRestartControl();
     drawStatusMessage();
     context.restore();
   }

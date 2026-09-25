@@ -55,3 +55,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Ignore the press; clamp only the divisor while drawing at the pointer; use an arbitrary fixed axis; shift the effective anchor along a velocity-derived radial axis. |
 | Rationale | A non-zero geometric radius avoids division by zero and visually matches the simulated tether. Deriving the radial direction from velocity avoids an arbitrary clockwise/counter-clockwise flip and the 12-unit distance separates the 9-unit orb from the 3-unit anchor. |
 | Consequences | Ultra-close taps may render up to 12 logical units from the literal pointer position. The whip scalar remains finite, though it can still produce intentionally large speeds after a much longer prior tether. |
+
+## ADR-006 — Position Canvas HUD glyphs individually for tracking
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Draw uppercase HUD strings one glyph at a time with spacing equal to `fontSize * 0.12`, using only the specified system-monospace fallback stack. |
+| Options considered | Rely on Canvas `letterSpacing`; omit tracking; position each glyph manually. |
+| Rationale | Canvas `letterSpacing` support is not consistent enough across the target mobile range, while manual placement implements the PRD's `+0.12em` typography without a font asset or DOM overlay. |
+| Consequences | Text measurement and alignment require a small custom renderer. HUD strings are short, so the additional per-frame glyph calls remain negligible and will be checked in the final performance pass. |

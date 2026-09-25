@@ -6,6 +6,18 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Token-complete rendering
+
+### Added
+
+- Added programmatic flat rendering for the orb, anchor pin, tether, resonant targets, triangular spike, orbital track, and logical grid.
+- Added an editorial HUD with level, target progress, tether allowance, and manually tracked system-monospace typography.
+- Added geometric victory/failure panels and a programmatic circular-arrow restart control.
+
+### Changed
+
+- Replaced placeholder borders and debug-state labels with the final PRD color-token vocabulary.
+
 ## [2026-09-25] — Dynamic tether physics
 
 ### Added

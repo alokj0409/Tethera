@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Dynamic tether physics is live; the token-complete rendering pass is next.** The orb moves on a fixed simulation step, projects its velocity onto each new tether tangent, gains the PRD-defined `0.65` whip boost when shortening the prior radius, orbits analytically while held, and preserves tangential momentum on release.
+**The production visual language is live; collision and outcomes are next.** The game now renders the complete flat geometric vocabulary and editorial HUD with every PRD color token, manually tracked system-monospace labels, logical grid marks, orbital guides, and a programmatic restart control.
 
 ## Run locally
 
@@ -17,9 +17,10 @@ No package manager, dependency installation, bundler, or external asset download
 - Press or touch anywhere in the play area to plant an anchor and tether the orb.
 - Hold to keep the tether active and orbit the anchor.
 - Release to snap the tether and continue in free flight.
+- Press the circular-arrow control at bottom right to restart the current level.
 - Clear every target before the allotted tether count reaches zero.
 
-The controls and orb motion are interactive. Target and hazard collision are not implemented yet, so the current checkpoint is a physics playground rather than a complete level.
+The controls and orb motion are interactive. Targets and the displayed spike are visual-only until the next collision checkpoint, so the current build is still a physics playground rather than a complete level.
 
 ## Project structure
 

@@ -1,7 +1,7 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: dynamic tether physics
+Implementation checkpoint: token-complete rendering
 
 This file is the definitive rules reference for the checked-in game. State transitions, input, tether accounting, and orb/tether motion are active; contacts and procedural tiers remain canonical requirements until their implementation checkpoints land.
 
@@ -18,6 +18,7 @@ Guide the kinetic orb through every target core in the level. The player control
 5. A level is won when every target core is shattered.
 6. The final tether remains usable while held. If it is released with targets still uncleared and no tether allowance remaining, the level enters `GAME_OVER`.
 7. A level is also lost when the orb strikes a lethal hazard once hazard collision is implemented.
+8. Pressing the circular-arrow control at the bottom right immediately resets the current level from any state.
 
 The final-tether timing is defined by ADR-003. Pressing after `GAME_OVER` resets the current level; pressing after `VICTORY` advances to the next level.
 
@@ -51,6 +52,8 @@ An anchor placed closer than `12` logical units to the orb is shifted to an effe
 - **Moving target:** follows either a linear or circular path. Path bounds, phase, and escape detection are pending.
 
 Pending details above are not implemented gameplay and are tracked in `TODO.md` for later ADRs.
+
+The currently displayed target cores and triangular spike use the final visual forms, but contact has no gameplay effect until collision detection is implemented.
 
 ## Level tiers
 

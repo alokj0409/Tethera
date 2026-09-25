@@ -4,16 +4,15 @@ Last updated: 2026-09-25
 
 This list tracks product requirements not present in the checked-in implementation. Items are ordered by the requested delivery sequence; completed work is removed from the active list and reflected in `CHANGELOG.md`.
 
-## Next increment — Token-complete rendering
+## Next increment — Collision and outcomes
 
-- Replace placeholder geometry with the full token-driven orb, anchor, tether, target, and hazard vocabulary.
-- Finish the production HUD for level, target progress, tether allowance, and restart control.
-- Keep every visual programmatic, flat, crisp, and free of gradients, glow, blur, and external assets.
+- Add swept circle-circle target collection so fast motion cannot skip target cores.
+- Add swept orb-versus-triangle spike contact and boundary-line response.
+- Activate victory/failure transitions and deterministic reset/advance timing.
 - Update all living documents, commit this increment alone, and push `main`.
 
 ## Remaining build order
 
-- Implement target circle collision, hazard/bouncer line contact, and victory/failure transitions.
 - Implement deterministic seeded generation and Poisson-disc placement for Tier 01-05.
 - Add `audio.js` Web Audio synthesis for snap, chime, shatter, and fail events.
 - Add damped tether motion (`k = 320`, `d = 24`), four-facet `240ms` shatter particles, `2.5px`/`60ms` recoil, and high-angular-speed tether pulse.

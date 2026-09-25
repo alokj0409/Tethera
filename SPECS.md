@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: dynamic tether physics
+Implementation checkpoint: token-complete rendering
 
-This file describes the repository as implemented, not merely intended. The app currently provides a responsive Canvas 2D shell, runtime state contract, one-pointer input, and dynamic tether/free-flight motion. Collision, level generation, and sound remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides a responsive Canvas 2D shell, runtime state contract, one-pointer input, dynamic tether/free-flight motion, and the production visual vocabulary. Collision, level generation, and sound remain pending.
 
 ## Runtime and delivery
 
@@ -38,14 +38,16 @@ No token is used in code yet. Required values for the rendering increment are:
 | --- | --- | --- |
 | `color-bg` | `#111215` | Page bleed and canvas clear color |
 | `color-canvas-subtle` | `#1A1C21` | Logical playfield scaffold border |
-| `color-orb` | `#F4F2EC` | Not implemented |
-| `color-tether` | `#E87A5D` | Not implemented |
-| `color-target-idle` | `#2D3139` | Not implemented |
-| `color-target-active` | `#F0C05A` | Not implemented |
-| `color-hazard` | `#D94E41` | Not implemented |
-| `color-ui-text` | `#8E929C` | Scaffold label |
+| `color-orb` | `#F4F2EC` | Solid kinetic orb fill |
+| `color-tether` | `#E87A5D` | Tether line and anchor pin |
+| `color-target-idle` | `#2D3139` | Concentric target rings |
+| `color-target-active` | `#F0C05A` | Resonant target core and victory heading |
+| `color-hazard` | `#D94E41` | Geometric spike and failure heading |
+| `color-ui-text` | `#8E929C` | HUD, prompt, and restart icon |
 
-Typography must use a system monospace fallback at `11px` to `14px`, uppercase, with `0.12em` tracking. No font asset is present.
+Typography uses a system monospace fallback at `11px` to `13px`, uppercase, with `0.12em` tracking applied by explicitly positioning each glyph on Canvas. No font asset is present. All entities, grid marks, HUD elements, and overlays use flat fills or one-pixel strokes; there are no gradients, shadows, blurs, or glow effects.
+
+The HUD shows zero-padded level number, cleared/total target count, and remaining tethers. A bottom-right circular-arrow icon resets the current level through a circular logical-space hit target centered at `(350, 794)` with radius `18`.
 
 ## Canonical level-generation baseline
 
