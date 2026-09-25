@@ -9,7 +9,7 @@
   const VECTOR_EPSILON = 1e-6;
   const LEVEL_SEED_MULTIPLIER = 49297;
   const POISSON_MIN_DISTANCE = 70;
-  const MAX_IMPLEMENTED_LEVEL = 12;
+  const MAX_IMPLEMENTED_LEVEL = 20;
   const PLAY_PADDING = 60;
   const PLAY_TOP = 100;
   const PLAY_HEIGHT = LOGICAL_HEIGHT - 180;
@@ -20,6 +20,8 @@
   const RECOIL_DISTANCE = 2.5;
   const RECOIL_DURATION = 0.06;
   const TETHER_PULSE_THRESHOLD = 12;
+  const BOUNCER_SPEED_MULTIPLIER = 1.1;
+  const BOUNCER_CONTACT_COOLDOWN = 0.08;
   const TARGET_ESCAPE_BOUNDS = Object.freeze({
     left: 0,
     right: LOGICAL_WIDTH,
@@ -100,6 +102,7 @@
     lastTetherRadius: null,
     targets: [],
     hazards: [],
+    bouncers: [],
     particles: [],
     tetherSnap: null,
     recoil: null,
@@ -244,15 +247,17 @@
         point.x + PLAY_PADDING - ORB_START.x,
         point.y + PLAY_TOP - ORB_START.y,
       ) >= 110;
+    const bouncerCount =
+      levelIndex >= 13 ? Math.min(1 + Math.floor((levelIndex - 13) / 3), 3) : 0;
     const points = poissonDiscSampling(
       playWidth,
       PLAY_HEIGHT,
       POISSON_MIN_DISTANCE,
       random,
-      targetCount,
+      targetCount + bouncerCount,
       acceptsPoint,
     );
-    const targets = points.map((point, index) => ({
+    const targets = points.slice(0, targetCount).map((point, index) => ({
       id: index + 1,
       x: point.x + PLAY_PADDING,
       y: point.y + PLAY_TOP,
@@ -295,6 +300,25 @@
       }
     }
 
+    const bouncers = points
+      .slice(targetCount, targetCount + bouncerCount)
+      .map((point, index) => {
+        const centerX = point.x + PLAY_PADDING;
+        const centerY = point.y + PLAY_TOP;
+        const angle = random() * Math.PI;
+        const halfLength = 32 + random() * 14;
+        const offsetX = Math.cos(angle) * halfLength;
+        const offsetY = Math.sin(angle) * halfLength;
+        return {
+          id: index + 1,
+          x1: centerX - offsetX,
+          y1: centerY - offsetY,
+          x2: centerX + offsetX,
+          y2: centerY + offsetY,
+          cooldown: 0,
+        };
+      });
+
     const launchAngle = -Math.PI * (0.58 + random() * 0.34);
     const launchSpeed = 82 + random() * 18;
 
@@ -310,7 +334,7 @@
       },
       targets,
       hazards: [],
-      bouncers: [],
+      bouncers,
       gravityPoles: [],
     };
   }
@@ -334,6 +358,7 @@
     runtime.lastTetherRadius = null;
     runtime.targets = level.targets;
     runtime.hazards = level.hazards;
+    runtime.bouncers = level.bouncers;
     runtime.particles = [];
     runtime.tetherSnap = null;
     runtime.recoil = null;
@@ -366,6 +391,14 @@
 
   function playSound(method, ...args) {
     window.TetheraAudio?.[method]?.(...args);
+  }
+
+  function startTetherSnap() {
+    if (!runtime.activeAnchor) {
+      return;
+    }
+
+    startTetherSnap();
   }
 
   function createTether(pointerAnchor) {
@@ -437,6 +470,29 @@
     const dx = point.x - nearestX;
     const dy = point.y - nearestY;
     return dx * dx + dy * dy;
+  }
+
+  function closestPointOnSegment(point, segmentStart, segmentEnd) {
+    const segmentX = segmentEnd.x - segmentStart.x;
+    const segmentY = segmentEnd.y - segmentStart.y;
+    const segmentLengthSquared = segmentX * segmentX + segmentY * segmentY;
+    if (segmentLengthSquared <= VECTOR_EPSILON) {
+      return { x: segmentStart.x, y: segmentStart.y };
+    }
+
+    const projection = Math.max(
+      0,
+      Math.min(
+        1,
+        ((point.x - segmentStart.x) * segmentX +
+          (point.y - segmentStart.y) * segmentY) /
+          segmentLengthSquared,
+      ),
+    );
+    return {
+      x: segmentStart.x + segmentX * projection,
+      y: segmentStart.y + segmentY * projection,
+    };
   }
 
   function cross(a, b, c) {
@@ -561,6 +617,10 @@
   function updateEffects(deltaSeconds) {
     runtime.elapsedTime += deltaSeconds;
 
+    for (const bouncer of runtime.bouncers) {
+      bouncer.cooldown = Math.max(0, bouncer.cooldown - deltaSeconds);
+    }
+
     for (const particle of runtime.particles) {
       particle.x += particle.vx * deltaSeconds;
       particle.y += particle.vy * deltaSeconds;
@@ -639,9 +699,88 @@
     return { starts, escaped: false };
   }
 
+  function reflectOrbFromBouncer(start, end, bouncer) {
+    if (bouncer.cooldown > 0) {
+      return false;
+    }
+
+    const segmentStart = { x: bouncer.x1, y: bouncer.y1 };
+    const segmentEnd = { x: bouncer.x2, y: bouncer.y2 };
+    if (
+      squaredDistanceSegmentToSegment(
+        start,
+        end,
+        segmentStart,
+        segmentEnd,
+      ) >
+      runtime.orb.radius * runtime.orb.radius
+    ) {
+      return false;
+    }
+
+    const nearest = closestPointOnSegment(end, segmentStart, segmentEnd);
+    let normalX = end.x - nearest.x;
+    let normalY = end.y - nearest.y;
+    let normalLength = Math.hypot(normalX, normalY);
+
+    if (normalLength <= VECTOR_EPSILON) {
+      const lineX = segmentEnd.x - segmentStart.x;
+      const lineY = segmentEnd.y - segmentStart.y;
+      const lineLength = Math.hypot(lineX, lineY);
+      normalX = -lineY / lineLength;
+      normalY = lineX / lineLength;
+      normalLength = 1;
+    }
+
+    normalX /= normalLength;
+    normalY /= normalLength;
+    if (runtime.orb.vel.x * normalX + runtime.orb.vel.y * normalY > 0) {
+      normalX *= -1;
+      normalY *= -1;
+    }
+
+    const incomingNormalSpeed =
+      runtime.orb.vel.x * normalX + runtime.orb.vel.y * normalY;
+    runtime.orb.vel.x =
+      (runtime.orb.vel.x - 2 * incomingNormalSpeed * normalX) *
+      BOUNCER_SPEED_MULTIPLIER;
+    runtime.orb.vel.y =
+      (runtime.orb.vel.y - 2 * incomingNormalSpeed * normalY) *
+      BOUNCER_SPEED_MULTIPLIER;
+    runtime.orb.pos.x = nearest.x + normalX * (runtime.orb.radius + 0.5);
+    runtime.orb.pos.y = nearest.y + normalY * (runtime.orb.radius + 0.5);
+    bouncer.cooldown = BOUNCER_CONTACT_COOLDOWN;
+
+    if (runtime.currentState === GAME_STATE.TETHERED) {
+      startTetherSnap();
+      runtime.lastTetherRadius = runtime.tether.radius;
+      runtime.activeAnchor = null;
+      runtime.activePointerId = null;
+      runtime.tether = null;
+      transitionTo(GAME_STATE.FREE_FLIGHT);
+      playSound("playSnap");
+
+      if (runtime.tethersRemaining === 0 && hasActiveTargets()) {
+        enterTerminalState(GAME_STATE.GAME_OVER);
+      }
+    }
+
+    return true;
+  }
+
   function resolveCollisions(start, end, targetStarts) {
     if (runtime.hazards.some((hazard) => sweptOrbHitsHazard(start, end, hazard))) {
       enterTerminalState(GAME_STATE.GAME_OVER);
+      return;
+    }
+
+    for (const bouncer of runtime.bouncers) {
+      if (reflectOrbFromBouncer(start, end, bouncer)) {
+        break;
+      }
+    }
+
+    if (runtime.currentState === GAME_STATE.GAME_OVER) {
       return;
     }
 
@@ -931,6 +1070,27 @@
     }
   }
 
+  function drawBouncers() {
+    for (const bouncer of runtime.bouncers) {
+      context.strokeStyle = COLORS.ui;
+      context.lineWidth = 3;
+      context.beginPath();
+      context.moveTo(bouncer.x1, bouncer.y1);
+      context.lineTo(bouncer.x2, bouncer.y2);
+      context.stroke();
+
+      context.fillStyle = COLORS.background;
+      for (const endpoint of [
+        { x: bouncer.x1, y: bouncer.y1 },
+        { x: bouncer.x2, y: bouncer.y2 },
+      ]) {
+        context.beginPath();
+        context.arc(endpoint.x, endpoint.y, 2, 0, Math.PI * 2);
+        context.fill();
+      }
+    }
+  }
+
   function drawShatterParticles() {
     for (const particle of runtime.particles) {
       context.save();
@@ -1080,6 +1240,7 @@
     drawGrid();
     drawTargets();
     drawHazards();
+    drawBouncers();
     drawShatterParticles();
     drawTetherSnap();
     drawOrbAndAnchor();
@@ -1157,6 +1318,17 @@
     generateLevel: (levelIndex) => structuredClone(generateLevel(levelIndex)),
     loadLevelForDiagnostics: (levelIndex) => initializeLevel(levelIndex),
     resetLevel: () => initializeLevel(runtime.currentLevelIndex),
+    setOrbForDiagnostics: ({ x, y, vx, vy }) => {
+      runtime.orb.pos.x = x;
+      runtime.orb.pos.y = y;
+      runtime.orb.vel.x = vx;
+      runtime.orb.vel.y = vy;
+      runtime.currentState = GAME_STATE.FREE_FLIGHT;
+      runtime.activeAnchor = null;
+      runtime.activePointerId = null;
+      runtime.tether = null;
+      renderScene();
+    },
     stepForDiagnostics: (seconds = FIXED_TIME_STEP) => {
       updatePhysics(seconds);
       renderScene();

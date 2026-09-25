@@ -125,3 +125,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Move every target; preserve the pseudocode's independent 50% chance; guarantee one plus 50% for the rest; bounce linear targets; fail on partial boundary crossing; fail only after full-circle escape. |
 | Rationale | Guaranteeing one makes the tier mechanic present in every level. An inward initial heading prevents unfair near-edge instant losses, while unbounded travel preserves the tier's explicit escape failure. Relative sweeps correctly account for both bodies moving within a fixed step. |
 | Consequences | The pseudocode's ambiguous `speed: 1.5` is interpreted as a gameplay-scale `72-90` logical units/s range rather than literal units/s. Circular targets never normally escape. Progression now loops after Level 12 until Deflection lands. |
+
+## ADR-013 — Snap tethered orbs out of bouncer contact
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Generate one to three seeded `64-92` unit line bouncers in Levels 13-20. Reflect swept contacts at exactly `1.1x`, separate by `0.5` units beyond orb radius, suppress repeat contact for `80ms`, and force a tethered impact into free flight. Keep lethal hazards absent until their named Level 21 tier. |
+| Options considered | Preserve the tether after reflection; alter the tether's angular speed; snap to free flight; endpoint-only collision; swept capsule collision; follow the pseudocode's Level 13 hazard count; follow the tier table's Level 21 introduction. |
+| Rationale | A rigid analytic orbit would overwrite reflected velocity on the next step, so snapping is the only response that preserves the specified bounce cleanly. Separation plus a short per-segment cooldown prevents speed multiplication while resting on a line. Tier naming is the clearest authority for when lethal hazards appear. |
+| Consequences | A bouncer can consume the opportunity of the final held tether and cause the normal zero-tether loss after reflection. The hazard-count pseudocode is deliberately deferred until Level 21. Progression loops after Level 20 until Spike Strata lands. |

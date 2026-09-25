@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Deflection
+
+### Added
+
+- Added one to three deterministic line bouncers across Levels 13-20.
+- Added swept orb-line collision, normal-based reflection, contact separation, and 80ms repeat-hit suppression.
+- Added tether snap-to-free-flight behavior on bouncer impact.
+
+### Changed
+
+- Extended deterministic generation and progression through Level 20.
+- Moved the temporary milestone progression loop to Level 20.
+
 ## [2026-09-25] — Centrifugal Cuts
 
 ### Added

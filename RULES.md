@@ -1,9 +1,9 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: Centrifugal Cuts (Levels 06-12)
+Implementation checkpoint: Deflection (Levels 13-20)
 
-This file is the definitive rules reference for the checked-in game. The complete core loop and generated Levels 01-12 are active; later-tier mechanics remain canonical requirements until their implementation checkpoints land.
+This file is the definitive rules reference for the checked-in game. The complete core loop and generated Levels 01-20 are active; later-tier mechanics remain canonical requirements until their implementation checkpoints land.
 
 ## Objective
 
@@ -46,12 +46,12 @@ An anchor placed closer than `12` logical units to the orb is shifted to an effe
 
 - **Target core:** swept circle-circle contact clears the target. The orb-center path for a physics step is tested against a circle whose radius is `orbRadius + targetRadius`. Clearing the final target wins the level.
 - **Hazard spike:** lethal contact immediately fails the level. The rendered triangle is the collision polygon; the swept orb center is tested against the triangle interior and a capsule of `orbRadius` around each edge.
-- **Bouncer:** a non-lethal line barricade that reflects the orb at `1.1x` return speed. The exact normal/reflection and anti-repeat-contact rules are pending.
+- **Bouncer:** a non-lethal line segment introduced at Level 13. Swept contact reflects velocity with `v' = (v - 2 * dot(v, n) * n) * 1.1`, separates the orb by `radius + 0.5`, and gives that segment an `80ms` contact cooldown. Impact while tethered snaps the tether and continues in `FREE_FLIGHT`; if it was the final tether, normal zero-tether failure follows.
 - **Wormhole pair:** entering one gate exits through its paired gate while preserving `|v|`. Exit direction, offset, and re-entry cooldown are pending.
 - **Pulsar field:** periodically applies gravity that warps the orb trajectory. Force falloff, pulse timing, duration, and stacking are pending.
 - **Moving target:** from Level 06 onward, at least one target moves. Linear targets travel at a seeded `72-90` units/s generally through the canvas center and fail the level once their whole circle escapes the `390 x 844` field. Circular targets orbit a seeded center at the same tangential-speed range with a `12-20` unit radius. Orb contact is tested in relative swept space.
 
-Pending bouncer, wormhole, and pulsar details above are not implemented gameplay and are tracked in `TODO.md`. When a spike hit and final-target contact are both possible in one fixed step, the spike loss takes precedence. The outer logical boundary currently has no orb collision response.
+Pending wormhole and pulsar details above are not implemented gameplay and are tracked in `TODO.md`. When a spike hit and final-target contact are both possible in one fixed step, the spike loss takes precedence. The outer logical boundary currently has no orb collision response.
 
 ## Level tiers
 
@@ -66,8 +66,8 @@ Pending bouncer, wormhole, and pulsar details above are not implemented gameplay
 
 Mechanics remain available after their introduction unless a generated level intentionally omits them. This progression interpretation will be validated when later tiers are implemented.
 
-Levels 01-12 are currently generated. All contain `min(2 + floor(level / 4), 7)` targets with 14-unit radii, no hazards, and deterministic initial centers separated by at least 70 logical units and 110 units from the orb spawn. Levels 01-05 keep every target static and grant at least six tethers. Levels 06-12 use the PRD tether formula and add seeded linear/circular motion.
+Levels 01-20 are currently generated. All contain `min(2 + floor(level / 4), 7)` targets with 14-unit radii, no lethal hazards, and deterministic initial centers separated by at least 70 logical units and 110 units from the orb spawn. Levels 01-05 keep every target static and grant at least six tethers. Levels 06-12 add seeded linear/circular motion. Levels 13-20 retain moving targets and add one to three seeded bouncers.
 
 ## Progression
 
-Victory advances to the next numerical level and failure resets the current stage. At the present implementation boundary, victory on Level 12 cycles to Level 01; this temporary loop will be removed when Tier 13 lands. Restarting or revisiting a level reproduces target positions, paths, phases, and launch velocity exactly.
+Victory advances to the next numerical level and failure resets the current stage. At the present implementation boundary, victory on Level 20 cycles to Level 01; this temporary loop will be removed when Tier 21 lands. Restarting or revisiting a level reproduces targets, paths, bouncers, and launch velocity exactly.

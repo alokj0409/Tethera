@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: Centrifugal Cuts (Levels 06-12)
+Implementation checkpoint: Deflection (Levels 13-20)
 
-This file describes the repository as implemented, not merely intended. The app currently provides the complete core loop, deterministic Linear Orbits, and moving-target Centrifugal Cuts through Level 12. Deflection and later tiers remain pending.
+This file describes the repository as implemented, not merely intended. The app currently provides the complete core loop and deterministic progression through Deflection at Level 20. Spike Strata and later tiers remain pending.
 
 ## Motion feedback
 
@@ -79,16 +79,16 @@ The HUD shows zero-padded level number, cleared/total target count, and remainin
 
 ## Level generation
 
-Levels 01-12 use these implemented parameters:
+Levels 01-20 use these implemented parameters:
 
 - Seed input: unsigned `Math.imul(levelIndex, 49297)`, fed to Mulberry32.
 - Logical placement padding: `60` units horizontally and a `100`-unit header offset.
 - Play height: logical height minus `180` units.
 - Target count: `min(2 + floor(levelIndex / 4), 7)`.
-- Hazard count: `levelIndex > 10 ? min(floor((levelIndex - 10) / 3), 6) : 0`.
+- Hazard count: zero through Level 20, following the tier table's Level 21 introduction rather than the conflicting sample pseudocode.
 - Tether allowance: `max(6, formula)` for Levels 01-05, then the PRD formula `max(3, targetCount + 2 - floor(levelIndex / 25))` for Levels 06-12.
 - Poisson-disc minimum separation: `70` logical units.
-- Target radius: `14`; generated hazards, bouncers, and gravity poles: none.
+- Target radius: `14`; generated hazards and gravity poles: none through Level 20.
 
 The generator uses Bridson active-list Poisson-disc sampling with a grid cell size of `70 / sqrt(2)` and up to 30 annulus candidates per active point. Samples must also stay at least `110` logical units from the fixed orb spawn `(195, 690)`. The orb launches at a seeded speed in `[82, 100)` and a seeded upward angle from `-0.58pi` through `-0.92pi`.
 
@@ -99,7 +99,11 @@ For Levels 06-12, the first target always moves and each additional target moves
 
 Target collision uses relative swept motion: the orb-start minus target-start vector and orb-end minus target-end vector form a segment tested against an origin circle of radius `orbRadius + targetRadius`. This catches crossings even when neither endpoint overlaps.
 
-The PRD tier table promises `6+` tethers for Linear Orbits, while its sample formula yields 4 or 5 for these levels. The implemented minimum of 6 follows the tier table. Until Tier 13 is implemented, victory after Level 12 cycles to Level 01 rather than exposing an incomplete tier.
+Levels 13-20 add `min(1 + floor((level - 13) / 3), 3)` bouncers. Their centers consume additional points from the same 70-unit Poisson-disc set. Each segment has seeded orientation and length in `[64, 92)` logical units.
+
+Bouncer collision compares the swept orb-center segment with the bouncer segment expanded by the 9-unit orb radius. On contact, a normal is taken from the closest endpoint/segment point (falling back to the line perpendicular at exact crossing), oriented against incoming velocity, and applied as `v_reflected = (v - 2 * dot(v, n) * n) * 1.1`. The orb center is separated to `radius + 0.5` from the nearest line point and that bouncer ignores further contact for `80ms`. A tethered impact snaps into `FREE_FLIGHT` before the reflected velocity continues.
+
+The PRD tier table promises `6+` tethers for Linear Orbits, while its sample formula yields 4 or 5 for those levels. The implemented minimum of 6 follows the tier table. Until Tier 21 is implemented, victory after Level 20 cycles to Level 01 rather than exposing an incomplete tier.
 
 ## State machine and input
 
@@ -122,5 +126,6 @@ The runtime uses a fixed `390 x 844` logical coordinate system. It measures the 
 ## Deviations from PRD
 
 - Linear Orbits enforces a six-tether floor instead of the PRD pseudocode's lower result, resolving the conflict in favor of the explicit tier table.
-- Progression temporarily cycles from Level 12 to Level 01 because no later tier is implemented yet.
+- The sample hazard-count formula would introduce hazards at Level 13, but the implemented generator follows the progression table and waits until Level 21.
+- Progression temporarily cycles from Level 20 to Level 01 because no later tier is implemented yet.
 - Safe-area padding is applied outside the logical game surface, so the aspect-fit calculation uses only unobstructed content space.
