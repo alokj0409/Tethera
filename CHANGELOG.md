@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Pulsar Fields
+
+### Added
+
+- Added one to three deterministic periodic gravity poles from Level 51 onward.
+- Added sine pulse envelopes, softened inverse-square attraction, per-pole acceleration caps, and additive force vectors.
+- Added tangential force projection during held tethers and full-vector acceleration in free flight.
+- Added flat programmatic pulsar rings and animated inward ticks.
+
+### Changed
+
+- Removed the milestone progression loop; deterministic levels now continue for every positive safe-integer index.
+
 ## [2026-09-25] — Wormhole Nodes
 
 ### Added

@@ -165,3 +165,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Reduce the 70-unit spacing; reduce entity counts; restart the entire sampler; deterministic dart-throw completion; fail immediately. |
 | Rationale | Wormhole levels can require 20 centers, and a valid seed can strand the local active frontier before filling that capacity. Global candidates recover other free regions without weakening any placement guarantee or introducing nondeterminism. |
 | Consequences | Dense seeds consume a variable but deterministic number of PRNG values, which also changes later orientation and launch draws for that seed. The hard 5,000-attempt limit still fails loudly instead of overlapping entities. |
+
+## ADR-017 — Use softened, capped sine-envelope pulsar gravity
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Add one pole at 51, two at 66, and three at 81; seed `[2.2, 2.8)` second periods and `[160000, 200000)` strengths; pulse for 0.55s with a sine envelope; use 36-unit softening and a 260-unit/s² cap; add pole vectors; project force onto the active tether tangent. Remove the progression cap. |
+| Options considered | Constant on/off gravity; sine envelope; linear envelope; inverse distance; inverse square; uncapped force; radial tether displacement; tangent-only tether acceleration. |
+| Rationale | A sine envelope enters and exits without a force discontinuity. Softened inverse-square falloff produces local warping without a center singularity, and the cap protects integration. Tangent projection changes orbital energy while honoring the rigid tether. Three poles bound per-step work even as levels continue indefinitely. |
+| Consequences | Pulsars cannot directly change tether radius; they alter angular speed until release. Overlapping pulses add before the per-pole cap, so combined acceleration can exceed 260. Level seeds remain 32-bit via `Math.imul`, and levels are accepted up to JavaScript's maximum safe integer. |

@@ -9,7 +9,6 @@
   const VECTOR_EPSILON = 1e-6;
   const LEVEL_SEED_MULTIPLIER = 49297;
   const POISSON_MIN_DISTANCE = 70;
-  const MAX_IMPLEMENTED_LEVEL = 50;
   const PLAY_PADDING = 60;
   const PLAY_TOP = 100;
   const PLAY_HEIGHT = LOGICAL_HEIGHT - 180;
@@ -24,6 +23,10 @@
   const BOUNCER_CONTACT_COOLDOWN = 0.08;
   const WORMHOLE_RADIUS = 18;
   const WORMHOLE_COOLDOWN = 0.25;
+  const PULSAR_RADIUS = 20;
+  const PULSAR_ACTIVE_DURATION = 0.55;
+  const PULSAR_SOFTENING = 36;
+  const PULSAR_MAX_ACCELERATION = 260;
   const TARGET_ESCAPE_BOUNDS = Object.freeze({
     left: 0,
     right: LOGICAL_WIDTH,
@@ -107,6 +110,7 @@
     bouncers: [],
     wormholes: [],
     wormholeCooldown: 0,
+    gravityPoles: [],
     particles: [],
     tetherSnap: null,
     recoil: null,
@@ -237,14 +241,8 @@
   }
 
   function generateLevel(levelIndex) {
-    if (
-      !Number.isInteger(levelIndex) ||
-      levelIndex < 1 ||
-      levelIndex > MAX_IMPLEMENTED_LEVEL
-    ) {
-      throw new RangeError(
-        `Level generation supports Levels 1 through ${MAX_IMPLEMENTED_LEVEL}.`,
-      );
+    if (!Number.isSafeInteger(levelIndex) || levelIndex < 1) {
+      throw new RangeError("Level generation requires a positive safe integer.");
     }
 
     const seed = Math.imul(levelIndex, LEVEL_SEED_MULTIPLIER) >>> 0;
@@ -268,12 +266,20 @@
       levelIndex >= 21 ? Math.min(Math.floor((levelIndex - 10) / 3), 6) : 0;
     const wormholePairCount =
       levelIndex >= 36 ? (levelIndex >= 43 ? 2 : 1) : 0;
+    const gravityPoleCount =
+      levelIndex >= 51
+        ? Math.min(1 + Math.floor((levelIndex - 51) / 15), 3)
+        : 0;
     const points = poissonDiscSampling(
       playWidth,
       PLAY_HEIGHT,
       POISSON_MIN_DISTANCE,
       random,
-      targetCount + bouncerCount + hazardCount + wormholePairCount * 2,
+      targetCount +
+        bouncerCount +
+        hazardCount +
+        wormholePairCount * 2 +
+        gravityPoleCount,
       acceptsPoint,
     );
     const targets = points.slice(0, targetCount).map((point, index) => ({
@@ -368,6 +374,31 @@
         rotation: random() * Math.PI * 2,
       }));
 
+    const gravityPoles = points
+      .slice(
+        targetCount + bouncerCount + hazardCount + wormholePairCount * 2,
+        targetCount +
+          bouncerCount +
+          hazardCount +
+          wormholePairCount * 2 +
+          gravityPoleCount,
+      )
+      .map((point, index) => {
+        const period = 2.2 + random() * 0.6;
+        return {
+          id: index + 1,
+          x: point.x + PLAY_PADDING,
+          y: point.y + PLAY_TOP,
+          radius: PULSAR_RADIUS,
+          strength: 160000 + random() * 40000,
+          period,
+          activeDuration: PULSAR_ACTIVE_DURATION,
+          phase: random() * period,
+          softening: PULSAR_SOFTENING,
+          maxAcceleration: PULSAR_MAX_ACCELERATION,
+        };
+      });
+
     const launchAngle = -Math.PI * (0.58 + random() * 0.34);
     const launchSpeed = 82 + random() * 18;
 
@@ -385,14 +416,12 @@
       hazards,
       bouncers,
       wormholes,
-      gravityPoles: [],
+      gravityPoles,
     };
   }
 
   function initializeLevel(levelIndex = runtime.currentLevelIndex) {
-    const playableLevelIndex =
-      ((levelIndex - 1) % MAX_IMPLEMENTED_LEVEL) + 1;
-    const level = generateLevel(playableLevelIndex);
+    const level = generateLevel(levelIndex);
     runtime.currentState = GAME_STATE.AWAITING_INPUT;
     runtime.currentLevelIndex = level.levelNumber;
     runtime.levelSeed = level.seed;
@@ -411,6 +440,7 @@
     runtime.bouncers = level.bouncers;
     runtime.wormholes = level.wormholes;
     runtime.wormholeCooldown = 0;
+    runtime.gravityPoles = level.gravityPoles;
     runtime.particles = [];
     runtime.tetherSnap = null;
     runtime.recoil = null;
@@ -884,6 +914,54 @@
     return false;
   }
 
+  function pulsarIntensity(pole, elapsedTime = runtime.elapsedTime) {
+    const pulseAge = (elapsedTime + pole.phase) % pole.period;
+    if (pulseAge < 0 || pulseAge >= pole.activeDuration) {
+      return 0;
+    }
+    return Math.sin((pulseAge / pole.activeDuration) * Math.PI);
+  }
+
+  function applyPulsarForces(deltaSeconds) {
+    let accelerationX = 0;
+    let accelerationY = 0;
+
+    for (const pole of runtime.gravityPoles) {
+      const intensity = pulsarIntensity(pole);
+      if (intensity <= 0) {
+        continue;
+      }
+
+      const offsetX = pole.x - runtime.orb.pos.x;
+      const offsetY = pole.y - runtime.orb.pos.y;
+      const distance = Math.hypot(offsetX, offsetY);
+      if (distance <= VECTOR_EPSILON) {
+        continue;
+      }
+
+      const softenedDistanceSquared =
+        distance * distance + pole.softening * pole.softening;
+      const acceleration =
+        Math.min(
+          pole.maxAcceleration,
+          pole.strength / softenedDistanceSquared,
+        ) * intensity;
+      accelerationX += (offsetX / distance) * acceleration;
+      accelerationY += (offsetY / distance) * acceleration;
+    }
+
+    if (runtime.currentState === GAME_STATE.TETHERED && runtime.tether) {
+      const tangentX = -Math.sin(runtime.tether.angle);
+      const tangentY = Math.cos(runtime.tether.angle);
+      runtime.tether.tangentialSpeed +=
+        (accelerationX * tangentX + accelerationY * tangentY) * deltaSeconds;
+      return;
+    }
+
+    runtime.orb.vel.x += accelerationX * deltaSeconds;
+    runtime.orb.vel.y += accelerationY * deltaSeconds;
+  }
+
   function resolveCollisions(start, end, targetStarts) {
     if (runtime.hazards.some((hazard) => sweptOrbHitsHazard(start, end, hazard))) {
       enterTerminalState(GAME_STATE.GAME_OVER);
@@ -956,6 +1034,8 @@
     if (movingTargets.escaped) {
       return;
     }
+
+    applyPulsarForces(deltaSeconds);
 
     const start = { x: runtime.orb.pos.x, y: runtime.orb.pos.y };
 
@@ -1248,6 +1328,50 @@
     }
   }
 
+  function drawGravityPoles() {
+    for (const pole of runtime.gravityPoles) {
+      const intensity = pulsarIntensity(pole);
+      context.strokeStyle = COLORS.subtle;
+      context.lineWidth = 1;
+      context.beginPath();
+      context.arc(pole.x, pole.y, pole.radius, 0, Math.PI * 2);
+      context.stroke();
+
+      context.strokeStyle = COLORS.targetActive;
+      context.beginPath();
+      context.arc(
+        pole.x,
+        pole.y,
+        pole.radius + intensity * 10,
+        0,
+        Math.PI * 2,
+      );
+      context.stroke();
+
+      const tickLength = 4 + intensity * 5;
+      for (let index = 0; index < 4; index += 1) {
+        const angle = index * (Math.PI / 2) + Math.PI / 4;
+        const cosine = Math.cos(angle);
+        const sine = Math.sin(angle);
+        context.beginPath();
+        context.moveTo(
+          pole.x + cosine * (pole.radius - 4),
+          pole.y + sine * (pole.radius - 4),
+        );
+        context.lineTo(
+          pole.x + cosine * (pole.radius - 4 - tickLength),
+          pole.y + sine * (pole.radius - 4 - tickLength),
+        );
+        context.stroke();
+      }
+
+      context.fillStyle = COLORS.targetActive;
+      context.beginPath();
+      context.arc(pole.x, pole.y, 2, 0, Math.PI * 2);
+      context.fill();
+    }
+  }
+
   function drawShatterParticles() {
     for (const particle of runtime.particles) {
       context.save();
@@ -1396,6 +1520,7 @@
 
     drawGrid();
     drawTargets();
+    drawGravityPoles();
     drawWormholes();
     drawHazards();
     drawBouncers();
@@ -1485,6 +1610,10 @@
       runtime.activeAnchor = null;
       runtime.activePointerId = null;
       runtime.tether = null;
+      renderScene();
+    },
+    setElapsedTimeForDiagnostics: (seconds) => {
+      runtime.elapsedTime = seconds;
       renderScene();
     },
     stepForDiagnostics: (seconds = FIXED_TIME_STEP) => {
