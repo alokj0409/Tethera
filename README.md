@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Responsive canvas scaffold complete; core state and input are next.** The app now opens to a DPR-sharp, safe-area-aware `390 x 844` logical canvas that aspect-fits and letterboxes on the available viewport.
+**Core state and one-pointer controls are live; tether physics is next.** Pressing plants a logical-space anchor and enters the tethered state, holding preserves it, and releasing returns to free flight. Placeholder geometry exposes state and tether accounting while physical motion is still pending.
 
 ## Run locally
 
@@ -19,7 +19,7 @@ No package manager, dependency installation, bundler, or external asset download
 - Release to snap the tether and continue in free flight.
 - Clear every target before the allotted tether count reaches zero.
 
-These controls describe the canonical game design; they are not interactive until the corresponding implementation increments are complete.
+The controls are interactive. Orb movement and target collisions are not implemented yet, so the current checkpoint visualizes state changes rather than a complete level.
 
 ## Project structure
 

@@ -4,16 +4,15 @@ Last updated: 2026-09-25
 
 This list tracks product requirements not present in the checked-in implementation. Items are ordered by the requested delivery sequence; completed work is removed from the active list and reflected in `CHANGELOG.md`.
 
-## Next increment — Core state and input
+## Next increment — Tether physics
 
-- Add the five canonical runtime states and explicit transition handling.
-- Map pointer coordinates from the displayed canvas into logical coordinates.
-- Implement press-to-anchor, hold-to-orbit-state, and release-to-free-flight state changes with placeholder rendering.
+- Add fixed-step orb integration for free flight and tethered motion.
+- Implement radial vectors, tangent projection, momentum preservation, and the exact `0.65` whip scalar.
+- Define and document the safe close-anchor radius and numerical integration details.
 - Update all living documents, commit this increment alone, and push `main`.
 
 ## Remaining build order
 
-- Implement tether dynamics: radial vector, tangent projection, momentum preservation, and `0.65` short-radius whip scaling.
 - Implement token-driven drawing for the orb, anchor, tether, target, hazard, and HUD.
 - Implement target circle collision, hazard/bouncer line contact, and victory/failure transitions.
 - Implement deterministic seeded generation and Poisson-disc placement for Tier 01-05.
@@ -35,7 +34,6 @@ This list tracks product requirements not present in the checked-in implementati
 
 - Define fixed simulation step, frame-delta clamp, maximum catch-up steps, and collision sub-stepping. Record the result in a future ADR.
 - Define the safe minimum tether radius and behavior for an anchor placed directly on the orb. Record the result in a future ADR.
-- Resolve whether failure at zero tethers occurs immediately on planting the last anchor, on releasing it, or only after its opportunity can no longer clear targets. Record the result in a future ADR.
 - Choose the deterministic PRNG and exact Poisson-disc variant, including fallback when the sampler cannot produce enough entities. Record the result in a future ADR.
 - Define free-flight behavior at the logical play boundary and moving-target escape boundaries. Record the result in a future ADR.
 - Define spike collision geometry and swept-contact handling.

@@ -25,3 +25,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | A fixed `390 x 844` backing store; logical size times DPR only; displayed size times DPR. |
 | Rationale | Matching actual display pixels keeps strokes sharp both below and above a scale of 1, while the transformed context lets every renderer and physics system remain in PRD logical coordinates. External safe-area padding prevents platform insets from changing gameplay coordinates. |
 | Consequences | A resize recreates and clears the backing store, so the current scene must be redrawn immediately. Very high DPR devices allocate proportionally more pixels; a future performance pass may add a documented cap if measurements require it. |
+
+## ADR-003 — Let the final tether complete on release
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Consume a tether when its anchor is planted, but do not evaluate the zero-tether loss until that active tether is released or cancelled. |
+| Options considered | Fail immediately when the counter reaches zero; fail on release; allow indefinite free flight after the final release. |
+| Rationale | Immediate failure makes the final allotted tether unusable. Waiting until release preserves a complete press-hold-release opportunity while still enforcing the PRD loss condition before another anchor can be planted. |
+| Consequences | A player may hold the final tether indefinitely. If its motion clears the final target, victory takes precedence; otherwise release transitions through `FREE_FLIGHT` to `GAME_OVER`. |

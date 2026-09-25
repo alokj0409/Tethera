@@ -1,9 +1,9 @@
 # TETHERA Living Technical Specification
 
 Last updated: 2026-09-25  
-Implementation checkpoint: responsive canvas scaffold
+Implementation checkpoint: core state machine and pointer input
 
-This file describes the repository as implemented, not merely intended. The app currently provides a responsive Canvas 2D shell but no gameplay, physics loop, level generator, or sound system. The tables below distinguish active implementation from the canonical PRD baseline for future checkpoints.
+This file describes the repository as implemented, not merely intended. The app currently provides a responsive Canvas 2D shell, runtime state contract, tether accounting, and one-pointer input. Orb physics, collision, level generation, and sound remain pending.
 
 ## Runtime and delivery
 
@@ -60,20 +60,19 @@ Level generation is not implemented. PRD Section 4 requires:
 
 The first generator increment is limited to Levels 01-05 and must not enable mechanics from later tiers.
 
-## Canonical state-machine baseline
+## State machine and input
 
-No state machine is implemented. The required runtime states are:
+The five canonical states are implemented with an explicit allowed-transition table:
 
 ```text
 AWAITING_INPUT -> TETHERED -> FREE_FLIGHT
        ^              |
        +--------------+
 
-Gameplay checks may transition to VICTORY or GAME_OVER.
-VICTORY advances to the next level; GAME_OVER restarts the current level.
+Pressing in `AWAITING_INPUT` or `FREE_FLIGHT` with at least one tether creates an anchor, decrements the allowance, captures the primary pointer, and enters `TETHERED`. Releasing or cancelling the captured pointer clears the anchor and enters `FREE_FLIGHT`. If that release leaves active targets and no tether allowance, it immediately continues to `GAME_OVER`. Pressing on `GAME_OVER` resets the current level; pressing on `VICTORY` advances one level.
 ```
 
-Required runtime data includes the current state and level, tethers remaining, score streak, orb position/velocity/radius, active anchor, targets, and particles.
+Runtime data includes current state and level, tethers remaining, score streak, orb position/velocity/radius, active anchor, captured pointer ID, targets, and particles. Pointer coordinates are transformed from the displayed canvas rectangle into the fixed logical coordinate system. A read-only snapshot is available through `TetheraGame.getState()` for diagnostics.
 
 ## Canonical scaling baseline
 

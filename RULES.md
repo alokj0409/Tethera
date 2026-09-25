@@ -1,9 +1,9 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: documentation baseline (rules are canonical but not yet playable)
+Implementation checkpoint: core state machine and pointer input
 
-This file is the definitive rules reference for the checked-in game. Until runtime code exists, it records the PRD rules that each implementation checkpoint must adopt; unresolved details are explicitly marked rather than invented.
+This file is the definitive rules reference for the checked-in game. State transitions, input, and tether accounting are active; physical motion, contacts, and procedural tiers remain canonical requirements until their implementation checkpoints land.
 
 ## Objective
 
@@ -16,9 +16,10 @@ Guide the kinetic orb through every target core in the level. The player control
 3. Releasing snaps the tether and returns the orb to free flight at its current tangential velocity.
 4. Planting an anchor consumes one tether from the level allowance.
 5. A level is won when every target core is shattered.
-6. A level is lost when the orb strikes a lethal hazard, or when no tethers remain while targets are still uncleared.
+6. The final tether remains usable while held. If it is released with targets still uncleared and no tether allowance remaining, the level enters `GAME_OVER`.
+7. A level is also lost when the orb strikes a lethal hazard once hazard collision is implemented.
 
-The exact moment at which zero remaining tethers triggers failure relative to an active final tether is not specified by the PRD and remains unresolved until the state-machine increment.
+The final-tether timing is defined by ADR-003. Pressing after `GAME_OVER` resets the current level; pressing after `VICTORY` advances to the next level.
 
 ## Orb and tether physics
 

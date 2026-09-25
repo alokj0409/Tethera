@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Core state and input
+
+### Added
+
+- Added the five-state runtime contract with guarded state transitions.
+- Added primary-pointer coordinate mapping, pointer capture, press-to-anchor, hold, and release-to-free-flight handling.
+- Added placeholder targets, orb, tether, status, and HUD drawing so state changes are visible before physics is introduced.
+- Added diagnostic state snapshots through `TetheraGame.getState()`.
+
+### Changed
+
+- Defined zero-tether failure to occur after the final active tether is released, preserving use of the final allowance.
+
 ## [2026-09-25] — Responsive canvas scaffold
 
 ### Added
