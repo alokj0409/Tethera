@@ -6,6 +6,19 @@ All notable changes to TETHERA are documented here in Keep a Changelog style. Ea
 
 No unreleased changes.
 
+## [2026-09-25] — Spike Strata
+
+### Added
+
+- Added deterministic 12-unit lethal triangle hazards for Levels 21-35.
+- Added seeded spike rotations and shared Poisson-disc placement across targets, bouncers, and hazards.
+- Activated existing swept polygon contact and failure audio in generated levels.
+
+### Changed
+
+- Extended deterministic generation and progression through Level 35.
+- Moved the temporary milestone progression loop to Level 35.
+
 ## [2026-09-25] — Deflection
 
 ### Added

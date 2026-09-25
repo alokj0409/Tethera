@@ -135,3 +135,13 @@ Future entries are required for choices not pinned down by `PRD.md`, including f
 | Options considered | Preserve the tether after reflection; alter the tether's angular speed; snap to free flight; endpoint-only collision; swept capsule collision; follow the pseudocode's Level 13 hazard count; follow the tier table's Level 21 introduction. |
 | Rationale | A rigid analytic orbit would overwrite reflected velocity on the next step, so snapping is the only response that preserves the specified bounce cleanly. Separation plus a short per-segment cooldown prevents speed multiplication while resting on a line. Tier naming is the clearest authority for when lethal hazards appear. |
 | Consequences | A bouncer can consume the opportunity of the final held tether and cause the normal zero-tether loss after reflection. The hazard-count pseudocode is deliberately deferred until Level 21. Progression loops after Level 20 until Spike Strata lands. |
+
+## ADR-014 — Apply the PRD hazard-count formula only inside Spike Strata
+
+| Field | Value |
+| --- | --- |
+| Date | 2026-09-25 |
+| Decision | Keep hazards at zero through Level 20, then use `min(floor((level - 10) / 3), 6)` from Level 21 onward. Allocate hazard centers after targets and bouncers from the same Poisson-disc result and use a seeded rotation with the PRD 12-unit radius. |
+| Options considered | Follow the sample formula from Level 11/13; start with one spike at Level 21; apply the formula only once its named tier begins. |
+| Rationale | Gating by the progression table preserves the intended mechanic unlock, while reusing the formula inside that tier retains the specified difficulty curve and six-spike cap. Shared placement prevents center overlap across entity types. |
+| Consequences | Spike Strata begins with three hazards at Level 21 rather than one. Progression loops after Level 35 until wormholes land. |

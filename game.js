@@ -9,7 +9,7 @@
   const VECTOR_EPSILON = 1e-6;
   const LEVEL_SEED_MULTIPLIER = 49297;
   const POISSON_MIN_DISTANCE = 70;
-  const MAX_IMPLEMENTED_LEVEL = 20;
+  const MAX_IMPLEMENTED_LEVEL = 35;
   const PLAY_PADDING = 60;
   const PLAY_TOP = 100;
   const PLAY_HEIGHT = LOGICAL_HEIGHT - 180;
@@ -249,12 +249,14 @@
       ) >= 110;
     const bouncerCount =
       levelIndex >= 13 ? Math.min(1 + Math.floor((levelIndex - 13) / 3), 3) : 0;
+    const hazardCount =
+      levelIndex >= 21 ? Math.min(Math.floor((levelIndex - 10) / 3), 6) : 0;
     const points = poissonDiscSampling(
       playWidth,
       PLAY_HEIGHT,
       POISSON_MIN_DISTANCE,
       random,
-      targetCount + bouncerCount,
+      targetCount + bouncerCount + hazardCount,
       acceptsPoint,
     );
     const targets = points.slice(0, targetCount).map((point, index) => ({
@@ -319,6 +321,19 @@
         };
       });
 
+    const hazards = points
+      .slice(
+        targetCount + bouncerCount,
+        targetCount + bouncerCount + hazardCount,
+      )
+      .map((point, index) => ({
+        id: index + 1,
+        x: point.x + PLAY_PADDING,
+        y: point.y + PLAY_TOP,
+        radius: 12,
+        rotation: random() * Math.PI * 2,
+      }));
+
     const launchAngle = -Math.PI * (0.58 + random() * 0.34);
     const launchSpeed = 82 + random() * 18;
 
@@ -333,7 +348,7 @@
         vy: Math.sin(launchAngle) * launchSpeed,
       },
       targets,
-      hazards: [],
+      hazards,
       bouncers,
       gravityPoles: [],
     };

@@ -1,9 +1,9 @@
 # TETHERA Gameplay Rules
 
 Last updated: 2026-09-25  
-Implementation checkpoint: Deflection (Levels 13-20)
+Implementation checkpoint: Spike Strata (Levels 21-35)
 
-This file is the definitive rules reference for the checked-in game. The complete core loop and generated Levels 01-20 are active; later-tier mechanics remain canonical requirements until their implementation checkpoints land.
+This file is the definitive rules reference for the checked-in game. The complete core loop and generated Levels 01-35 are active; wormholes and pulsars remain canonical requirements until their implementation checkpoints land.
 
 ## Objective
 
@@ -66,8 +66,8 @@ Pending wormhole and pulsar details above are not implemented gameplay and are t
 
 Mechanics remain available after their introduction unless a generated level intentionally omits them. This progression interpretation will be validated when later tiers are implemented.
 
-Levels 01-20 are currently generated. All contain `min(2 + floor(level / 4), 7)` targets with 14-unit radii, no lethal hazards, and deterministic initial centers separated by at least 70 logical units and 110 units from the orb spawn. Levels 01-05 keep every target static and grant at least six tethers. Levels 06-12 add seeded linear/circular motion. Levels 13-20 retain moving targets and add one to three seeded bouncers.
+Levels 01-35 are currently generated. All contain `min(2 + floor(level / 4), 7)` targets with 14-unit radii and deterministic entity centers separated by at least 70 logical units and 110 units from the orb spawn. Levels 01-05 keep every target static and grant at least six tethers. Levels 06-12 add seeded linear/circular motion. Levels 13-20 retain moving targets and add one to three seeded bouncers. Levels 21-35 retain earlier mechanics and add `min(floor((level - 10) / 3), 6)` seeded 12-unit spikes.
 
 ## Progression
 
-Victory advances to the next numerical level and failure resets the current stage. At the present implementation boundary, victory on Level 20 cycles to Level 01; this temporary loop will be removed when Tier 21 lands. Restarting or revisiting a level reproduces targets, paths, bouncers, and launch velocity exactly.
+Victory advances to the next numerical level and failure resets the current stage. At the present implementation boundary, victory on Level 35 cycles to Level 01; this temporary loop will be removed when Tier 36 lands. Restarting or revisiting a level reproduces targets, paths, bouncers, spikes, and launch velocity exactly.

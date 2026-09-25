@@ -4,7 +4,7 @@ TETHERA is a one-thumb kinetic-physics puzzle game about turning momentum into p
 
 ## Current status
 
-**Deflection is playable through Level 20; Spike Strata is next.** Seeded non-lethal line barricades now reflect the orb at exactly `1.1x` speed, separate it from the contact surface, suppress repeat hits briefly, and snap an active tether so the reflected trajectory persists.
+**Spike Strata is playable through Level 35; Wormhole Nodes is next.** Level 21 introduces deterministic lethal triangles drawn and collided from the same vertices, scaling from three to six spikes while preserving moving targets and bouncers from earlier tiers.
 
 ## Run locally
 
@@ -20,7 +20,7 @@ No package manager, dependency installation, bundler, or external asset download
 - Press the circular-arrow control at bottom right to restart the current level.
 - Clear every target before the allotted tether count reaches zero.
 
-The controls and full core loop are interactive across Linear Orbits (01-05), Centrifugal Cuts (06-12), and Deflection (13-20). After Level 20, the current milestone cycles to Level 01 until Spike Strata is generated; spike collision remains implemented but no lethal spikes appear before Level 21.
+The controls and full core loop are interactive across Linear Orbits (01-05), Centrifugal Cuts (06-12), Deflection (13-20), and Spike Strata (21-35). After Level 35, the current milestone cycles to Level 01 until Wormhole Nodes is implemented.
 
 ## Project structure
 
